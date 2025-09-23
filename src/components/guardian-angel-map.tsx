@@ -11,16 +11,16 @@ import type { DangerZone, LatLngExpression } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 
 // Leaflet's CSS requires this workaround in Next.js
-if (L.Icon.Default.prototype) {
+if (typeof window !== 'undefined' && L.Icon.Default.prototype) {
   // @ts-ignore
   delete L.Icon.Default.prototype._getIconUrl;
+  
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  });
 }
-
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
 
 interface GuardianAngelMapProps {
   userPosition: LatLngExpression | null;
@@ -32,28 +32,36 @@ interface GuardianAngelMapProps {
 
 const VISAKHAPATNAM: LatLngExpression = [17.6868, 83.2185];
 
-const UserMarkerIcon = L.divIcon({
-  html: ReactDOMServer.renderToString(
-    <div className="bg-primary rounded-full p-2 shadow-lg">
-      <PersonStanding className="h-6 w-6 text-primary-foreground" />
-    </div>
-  ),
-  className: '', // important to clear default styling
-  iconSize: [40, 40],
-  iconAnchor: [20, 20],
-});
-
-
-export default function GuardianAngelMap({ userPosition, destination, dangerZones, unsafeRouteSegments, onRouteCalculated }: GuardianAngelMapProps) {
+export default function GuardianAngelMap({ 
+  userPosition, 
+  destination, 
+  dangerZones, 
+  unsafeRouteSegments, 
+  onRouteCalculated 
+}: GuardianAngelMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
+  const destinationMarkerRef = useRef<L.Marker | null>(null);
   const dangerZoneLayerRef = useRef<L.LayerGroup | null>(null);
   const routingControlRef = useRef<L.Routing.Control | null>(null);
   const unsafeSegmentsLayerRef = useRef<L.LayerGroup | null>(null);
   const { toast } = useToast();
 
-  // Initialize map
+  const getUserMarkerIcon = () => {
+    if (typeof window === 'undefined') return new L.Icon.Default();
+    return L.divIcon({
+      html: ReactDOMServer.renderToString(
+        <div className="bg-primary rounded-full p-2 shadow-lg">
+          <PersonStanding className="h-6 w-6 text-primary-foreground" />
+        </div>
+      ),
+      className: '', 
+      iconSize: [40, 40],
+      iconAnchor: [20, 20],
+    });
+  };
+
   useEffect(() => {
     if (mapRef.current || !mapContainerRef.current) return;
 
@@ -61,6 +69,7 @@ export default function GuardianAngelMap({ userPosition, destination, dangerZone
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
     }).addTo(mapRef.current);
 
     dangerZoneLayerRef.current = L.layerGroup().addTo(mapRef.current);
@@ -72,23 +81,34 @@ export default function GuardianAngelMap({ userPosition, destination, dangerZone
     };
   }, []);
 
-  // Update user marker and view
+  useEffect(() => {
+    if (!mapRef.current || !userPosition) return;
+
+    const userIcon = getUserMarkerIcon();
+    if (!userMarkerRef.current) {
+      userMarkerRef.current = L.marker(userPosition, { icon: userIcon }).addTo(mapRef.current);
+    } else {
+      userMarkerRef.current.setLatLng(userPosition);
+    }
+
+    if (!destination) {
+      mapRef.current.flyTo(userPosition, 15);
+    }
+  }, [userPosition, destination]);
+
   useEffect(() => {
     if (!mapRef.current) return;
 
-    if (userPosition) {
-      if (!userMarkerRef.current) {
-        userMarkerRef.current = L.marker(userPosition, { icon: UserMarkerIcon }).addTo(mapRef.current);
-      } else {
-        userMarkerRef.current.setLatLng(userPosition);
-      }
-       if (!destination) {
-        mapRef.current.flyTo(userPosition, 15);
-      }
+    if (destinationMarkerRef.current) {
+      mapRef.current.removeLayer(destinationMarkerRef.current);
+      destinationMarkerRef.current = null;
     }
-  }, [userPosition, destination]);
+
+    if (destination) {
+      destinationMarkerRef.current = L.marker(destination).addTo(mapRef.current);
+    }
+  }, [destination]);
   
-  // Update danger zones
   useEffect(() => {
     const layerGroup = dangerZoneLayerRef.current;
     if (!mapRef.current || !layerGroup) return;
@@ -97,7 +117,6 @@ export default function GuardianAngelMap({ userPosition, destination, dangerZone
 
     dangerZones.forEach((zone) => {
       const color = zone.level === 'high' ? 'red' : 'orange';
-      
       L.circle(zone.location, {
         radius: zone.radius,
         color: color,
@@ -108,81 +127,83 @@ export default function GuardianAngelMap({ userPosition, destination, dangerZone
     });
   }, [dangerZones]);
 
-  // Handle routing
   useEffect(() => {
     if (!mapRef.current || !userPosition) return;
-    
-    // Remove existing routing control if it exists
+
+    // Remove the previous routing control if it exists to avoid duplicates.
     if (routingControlRef.current) {
       mapRef.current.removeControl(routingControlRef.current);
       routingControlRef.current = null;
     }
     
-    // Clear unsafe segments layer
     unsafeSegmentsLayerRef.current?.clearLayers();
 
-    if(destination) {
+    if (destination) {
       const routingControl = L.Routing.control({
         waypoints: [
-            L.latLng(userPosition[0], userPosition[1]),
-            L.latLng(destination[0], destination[1])
+          L.latLng(userPosition[0], userPosition[1]),
+          L.latLng(destination[0], destination[1])
         ],
-        routeWhileDragging: true,
-        show: false, // Hides the itinerary panel
-        addWaypoints: false, // Prevents users from adding more waypoints
+        routeWhileDragging: false,
+        show: false,
+        addWaypoints: false,
         lineOptions: {
-            styles: [{ color: 'hsl(var(--accent))', opacity: 0.8, weight: 6 }]
+          styles: [{ color: 'hsl(var(--accent))', opacity: 0.8, weight: 6 }]
         },
-        createMarker: () => null, // Disable default markers for waypoints
-        // This geocoder override is necessary to prevent the control from trying to reverse-geocode waypoints.
-        geocoder: null,
-      }).addTo(mapRef.current);
+        createMarker: () => null,
+      });
+
+      routingControl.on('routesfound', (e: any) => {
+        const routes = e.routes;
+        if (routes && routes.length > 0) {
+          const routeLine = routes[0].coordinates.map((c: any) => [c.lat, c.lng] as LatLngExpression);
+          onRouteCalculated(routeLine);
+          
+          const bounds = L.latLngBounds(userPosition, destination);
+          mapRef.current?.fitBounds(bounds, { padding: [50, 50] });
+        }
+      });
       
-      const onRoutingError = () => {
+      // The definitive fix for the routing error.
+      // We listen for the 'routingerror' event and handle it gracefully
+      // by showing a toast, preventing the default console error.
+      routingControl.on('routingerror', () => {
         toast({
-            variant: 'destructive',
-            title: 'Routing Error',
-            description: 'Could not find a route. The service may be unavailable or the destination unreachable.'
+          variant: 'destructive',
+          title: 'Routing Error',
+          description: 'Could not find a route. The service may be unavailable or the destination is unreachable.',
         });
-      };
-
-      // This is the correct and final fix. We attach a listener to the routing control itself.
-      // This listener will be called when the routing service fails.
-      // Returning false from this listener should prevent the library's default error handler from running.
-      L.DomEvent.on(routingControl, 'routingerror', function(e) {
-          onRoutingError();
-          // By handling the event, we prevent the default console.error log
-          if (e && e.error) {
-            // This is to satisfy typescript, but we just need to handle the event.
-          }
-          return true; // Stop propagation
       });
 
-      routingControl.on('routesfound', function (e: L.Routing.RoutesFoundEvent) {
-          const routes = e.routes;
-          if (routes.length > 0) {
-            const routeLine = routes[0].coordinates.map(c => [c.lat, c.lng] as LatLngExpression);
-            onRouteCalculated(routeLine);
-          }
-      });
-
+      routingControl.addTo(mapRef.current);
       routingControlRef.current = routingControl;
     }
   }, [userPosition, destination, onRouteCalculated, toast]);
 
-    // Draw unsafe route segments
-    useEffect(() => {
-        const layerGroup = unsafeSegmentsLayerRef.current;
-        if (!mapRef.current || !layerGroup) return;
+  useEffect(() => {
+    const layerGroup = unsafeSegmentsLayerRef.current;
+    if (!mapRef.current || !layerGroup) return;
 
-        layerGroup.clearLayers();
+    layerGroup.clearLayers();
 
-        if (unsafeRouteSegments.length > 0) {
-            unsafeRouteSegments.forEach(segment => {
-                L.polyline(segment, { color: 'red', weight: 8, opacity: 0.8 }).addTo(layerGroup);
-            });
+    if (unsafeRouteSegments.length > 0) {
+      unsafeRouteSegments.forEach(segment => {
+        if (segment && segment.length > 1) {
+          L.polyline(segment, { 
+            color: 'hsl(var(--destructive))', 
+            weight: 8, 
+            opacity: 0.8,
+            dashArray: '10, 10'
+          }).addTo(layerGroup);
         }
-    }, [unsafeRouteSegments]);
+      });
+    }
+  }, [unsafeRouteSegments]);
 
-  return <div ref={mapContainerRef} className="h-screen w-full z-10" />;
+  return (
+    <div 
+      ref={mapContainerRef} 
+      className="h-screen w-full z-10" 
+    />
+  );
 }
