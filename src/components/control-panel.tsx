@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useAuth } from '@/lib/firebase/auth-context';
 import { auth } from '@/lib/firebase/config';
 import { Input } from './ui/input';
+import { useToast } from '@/hooks/use-toast';
 
 
 interface ControlPanelProps {
@@ -32,6 +33,7 @@ export default function ControlPanel({
   const [destinationAddress, setDestinationAddress] = useState('');
   const { user } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
 
   const onSosConfirm = () => {
@@ -49,7 +51,10 @@ export default function ControlPanel({
 
   const handleDestinationSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    handleSetDestination(destinationAddress);
+    toast({
+      title: 'Feature Under Development',
+      description: 'Destination routing is not yet implemented in this prototype.',
+    });
   }
 
   const handleLogout = async () => {
