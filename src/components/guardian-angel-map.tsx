@@ -5,8 +5,6 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-routing-machine';
 import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
-// Import GraphHopper support
-import 'leaflet-routing-machine/dist/leaflet-routing-machine.graphhopper.js';
 
 import ReactDOMServer from 'react-dom/server';
 import { PersonStanding } from 'lucide-react';
@@ -131,8 +129,9 @@ export default function GuardianAngelMap({
       const [userLat, userLng] = userPosition as [number, number];
       const [destLat, destLng] = destination as [number, number];
 
+      // @ts-ignore
       const graphHopperRouter = L.Routing.graphHopper(
-        "af3033f0-e0ee-43fe-b8d9-67aef2b6b707", // 🔑 replace with your key
+        "af3033f0-e0ee-43fe-b8d9-67aef2b6b707", 
         { urlParameters: { vehicle: "car" } }
       );
 
@@ -152,7 +151,7 @@ export default function GuardianAngelMap({
       }).addTo(mapRef.current);
 
       routingControl.on('routingerror', (e) => {
-        console.error("GraphHopper routing failed:", e);
+        console.warn("GraphHopper routing failed:", e);
       });
 
       routingControlRef.current = routingControl;
