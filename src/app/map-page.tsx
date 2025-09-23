@@ -169,12 +169,21 @@ export default function MapPage() {
         return;
     }
     const location = { lat: userPosition[0], lng: userPosition[1] };
-    await triggerSOS(location);
-    toast({
-      variant: 'destructive',
-      title: 'SOS Activated',
-      description: 'Your location has been sent to emergency contacts.',
-    });
+    const result = await triggerSOS(location);
+    
+    if (result.success) {
+      toast({
+        variant: 'destructive',
+        title: 'SOS Activated',
+        description: result.message,
+      });
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'SOS Failed',
+        description: result.message,
+      });
+    }
   };
 
   const handleToggleTracking = () => {
