@@ -7,7 +7,6 @@ import ReactDOMServer from 'react-dom/server';
 import { PersonStanding } from 'lucide-react';
 import type { DangerZone, LatLngExpression } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
-import { MAPBOX_ACCESS_TOKEN } from '@/lib/env';
 
 // Leaflet's CSS requires this workaround in Next.js
 if (typeof window !== 'undefined' && L.Icon.Default.prototype) {
@@ -92,7 +91,7 @@ export default function GuardianAngelMap({
         mapRef.current = null;
       }
     };
-  }, [toast]);
+  }, []);
 
   // Update user marker and view
   useEffect(() => {
@@ -222,14 +221,9 @@ export default function GuardianAngelMap({
 
     // Routing API call
     const getRouteFromAPI = async () => {
-        if (!MAPBOX_ACCESS_TOKEN) {
-            console.warn('Mapbox access token is not configured. Falling back to direct line.');
-            return false;
-        }
-
         const service = {
-            name: 'Mapbox',
-            url: `https://api.mapbox.com/directions/v5/mapbox/walking/${startLng},${startLat};${endLng},${endLat}?geometries=geojson&access_token=${MAPBOX_ACCESS_TOKEN}`,
+            name: 'OSRM',
+            url: `https://router.project-osrm.org/route/v1/foot/${startLng},${startLat};${endLng},${endLat}?geometries=geojson`,
             parseResponse: (data: any) => {
                 if (data.routes?.[0]?.geometry?.coordinates) {
                     return data.routes[0].geometry.coordinates.map((coord: number[]) => [coord[1], coord[0]] as LatLngExpression);
