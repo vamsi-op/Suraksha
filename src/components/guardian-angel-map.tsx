@@ -36,9 +36,19 @@ function MapUpdater({ position }: { position: LatLngExpression | null }) {
 }
 
 export default function GuardianAngelMap({ userPosition, dangerZones }: GuardianAngelMapProps) {
+  // Using a key that changes when userPosition becomes available forces a re-render
+  // of the MapContainer, preventing the "Map container is already initialized" error.
+  const mapKey = userPosition ? 'map-user' : 'map-loading';
+
   return (
     <div className="h-screen w-full z-10">
-      <MapContainer center={userPosition || LOS_ANGELES} zoom={13} scrollWheelZoom={true} style={{ height: '100%', width: '100%' }}>
+      <MapContainer
+        key={mapKey}
+        center={userPosition || LOS_ANGELES}
+        zoom={13}
+        scrollWheelZoom={true}
+        style={{ height: '100%', width: '100%' }}
+      >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
