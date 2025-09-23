@@ -2,33 +2,24 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { GuardianAngelLogo } from './icons';
-import { Navigation, Siren, Share2, ShieldCheck, Route, XCircle, Timer } from 'lucide-react';
+import { Siren, Share2, XCircle, Timer } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface ControlPanelProps {
-  destination: string;
-  setDestination: (dest: string) => void;
-  findRoute: () => void;
   handleSos: () => void;
   isTracking: boolean;
   trackingSeconds: number;
   handleToggleTracking: () => void;
-  routes: google.maps.DirectionsRoute[];
 }
 
 export default function ControlPanel({
-  destination,
-  setDestination,
-  findRoute,
   handleSos,
   isTracking,
   trackingSeconds,
   handleToggleTracking,
-  routes
 }: ControlPanelProps) {
   const [sosLoading, setSosLoading] = useState(false);
 
@@ -57,29 +48,6 @@ export default function ControlPanel({
         </div>
       </CardHeader>
       <CardContent className="flex-grow overflow-y-auto space-y-6">
-        <div className="space-y-3">
-          <h3 className="font-semibold text-foreground flex items-center"><Navigation className="mr-2 h-5 w-5 text-primary" />Route Planner</h3>
-          <div className="flex space-x-2">
-            <Input
-              placeholder="Enter your destination..."
-              value={destination}
-              onChange={(e) => setDestination(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && findRoute()}
-            />
-            <Button onClick={findRoute} size="icon" aria-label="Find Route">
-              <Route className="h-5 w-5" />
-            </Button>
-          </div>
-          {routes.length > 0 && (
-             <div className="text-sm space-y-2 pt-2">
-                <div className="flex items-center font-medium"><ShieldCheck className="mr-2 h-4 w-4 text-primary"/> Guardian Route (Safer)</div>
-                <div className="flex items-center text-muted-foreground"><Route className="mr-2 h-4 w-4 text-accent"/> Alternative Route</div>
-             </div>
-          )}
-        </div>
-        
-        <Separator />
-
         <div className="space-y-3">
           <h3 className="font-semibold text-foreground flex items-center"><Siren className="mr-2 h-5 w-5 text-destructive" />Safety Tools</h3>
           <div className="grid grid-cols-1 gap-2">
