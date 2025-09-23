@@ -102,7 +102,7 @@ export default function GuardianAngelMap({ userPosition, dangerZones, destinatio
     layerGroup.clearLayers();
 
     dangerZones.forEach((zone) => {
-      const color = zone.level === 'high' ? 'red' : 'yellow';
+      const color = zone.level === 'high' ? 'red' : 'orange';
       
       L.circle(zone.location, {
         radius: zone.radius,
