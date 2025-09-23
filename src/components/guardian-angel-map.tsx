@@ -145,7 +145,7 @@ export default function GuardianAngelMap({
         createMarker: () => null,
       })
       .on('routingerror', (e) => {
-        console.warn('Routing error:', e);
+        console.warn('Routing error caught:', e);
         toast({
             variant: 'destructive',
             title: 'Routing Error',
