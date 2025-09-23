@@ -1,6 +1,6 @@
 'use server';
 
-import { getUserContacts } from "./firebase/firestore";
+import { getUserContacts } from "./firebase/server-actions";
 
 interface SosResult {
   success: boolean;

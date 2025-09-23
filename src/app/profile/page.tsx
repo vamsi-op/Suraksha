@@ -33,6 +33,7 @@ export default function ProfilePage() {
     setLoading(true);
     try {
       if (!user) return;
+      // Use the correctly scoped client-side function
       const userContacts = await getClientUserContacts();
       setContacts(userContacts);
     } catch (error) {

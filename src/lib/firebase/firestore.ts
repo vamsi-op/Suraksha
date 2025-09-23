@@ -1,7 +1,8 @@
 import { db, auth } from './config';
-import { collection, addDoc, getDocs, query, where, doc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, doc, deleteDoc } from 'firebase/firestore';
 import type { EmergencyContact } from '../definitions';
-import { adminDb } from './admin';
+
+// This file should only contain CLIENT-SIDE Firestore operations.
 
 // Function to get the current user's ID on the client
 const getCurrentUserId = () => {
@@ -18,28 +19,9 @@ export const addContact = async (contact: { name: string; phone: string }) => {
   await addDoc(collection(db, 'users', userId, 'contacts'), contact);
 };
 
-// Get all emergency contacts for a given user ID
-// This function can be called from the client or server
-export const getUserContacts = async (userId: string): Promise<EmergencyContact[]> => {
-  // Determine if we are on the server or client
-  const isServer = typeof window === 'undefined';
-  
-  if (isServer) {
-    // SERVER-SIDE LOGIC (using Admin SDK)
-    const contactsRef = adminDb.collection('users').doc(userId).collection('contacts');
-    const snapshot = await contactsRef.get();
-    
-    if (snapshot.empty) {
-      return [];
-    }
-    const contacts: EmergencyContact[] = [];
-    snapshot.forEach(doc => {
-      contacts.push({ id: doc.id, ...doc.data() } as EmergencyContact);
-    });
-    return contacts;
-
-  } else {
-    // CLIENT-SIDE LOGIC (using Client SDK)
+// Get all emergency contacts for the current logged-in user (CLIENT-SIDE)
+export const getClientUserContacts = async (): Promise<EmergencyContact[]> => {
+    const userId = getCurrentUserId();
     const contactsRef = collection(db, 'users', userId, 'contacts');
     const q = query(contactsRef);
     const snapshot = await getDocs(q);
@@ -52,13 +34,6 @@ export const getUserContacts = async (userId: string): Promise<EmergencyContact[
       contacts.push({ id: doc.id, ...doc.data() } as EmergencyContact);
     });
     return contacts;
-  }
-};
-
-// This version is specifically for client-side use where auth.currentUser is available
-export const getClientUserContacts = async (): Promise<EmergencyContact[]> => {
-    const userId = getCurrentUserId();
-    return getUserContacts(userId);
 }
 
 // Delete an emergency contact (CLIENT-SIDE)
