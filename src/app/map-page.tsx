@@ -121,20 +121,24 @@ export default function MapPage() {
 
   const handleSetDestination = async (address: string) => {
     try {
-      // Use OpenStreetMap's Nominatim API for geocoding
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`);
+      const response = await fetch(`https://api.positionstack.com/v1/forward?access_key=5cde8f6b692552794a203f15c8e31a98&query=${encodeURIComponent(address)}&limit=1`);
       const data = await response.json();
-      if (data && data.length > 0) {
-        const { lat, lon } = data[0];
-        const newDestination: LatLngExpression = [parseFloat(lat), parseFloat(lon)];
-        setDestination(newDestination);
-        toast({ title: 'Destination Set', description: `Route planned to ${data[0].display_name}` });
+      
+      if (data && data.data && data.data.length > 0) {
+        const { latitude, longitude, label } = data.data[0];
+        if (latitude && longitude) {
+            const newDestination: LatLngExpression = [latitude, longitude];
+            setDestination(newDestination);
+            toast({ title: 'Destination Set', description: `Route planned to ${label}` });
+        } else {
+            throw new Error('Invalid coordinates received.');
+        }
       } else {
         toast({ variant: 'destructive', title: 'Address not found', description: 'Please try a different address.' });
       }
     } catch (error) {
       console.error('Error geocoding address:', error);
-      toast({ variant: 'destructive', title: 'Routing Error', description: 'Could not set destination.' });
+      toast({ variant: 'destructive', title: 'Routing Error', description: 'Could not set destination. The address might be invalid or the routing service is unavailable.' });
     }
   };
 
