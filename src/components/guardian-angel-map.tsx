@@ -9,11 +9,11 @@ import ReactDOMServer from 'react-dom/server';
 import { PersonStanding } from 'lucide-react';
 import type { DangerZone, LatLngExpression } from '@/lib/definitions';
 
-// Leaflet's CSS requires this workaround in Next.js
+// Fix Leaflet icons in Next.js
 if (typeof window !== 'undefined' && L.Icon.Default.prototype) {
   // @ts-ignore
   delete L.Icon.Default.prototype._getIconUrl;
-  
+
   L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
     iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -29,10 +29,10 @@ interface GuardianAngelMapProps {
 
 const VISAKHAPATNAM: LatLngExpression = [17.6868, 83.2185];
 
-export default function GuardianAngelMap({ 
-  userPosition, 
-  destination, 
-  dangerZones, 
+export default function GuardianAngelMap({
+  userPosition,
+  destination,
+  dangerZones,
 }: GuardianAngelMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -40,23 +40,23 @@ export default function GuardianAngelMap({
   const dangerZoneLayerRef = useRef<L.LayerGroup | null>(null);
   const routingControlRef = useRef<L.Routing.Control | null>(null);
 
-  // Create user marker icon only on client side
+  // User marker icon
   const getUserMarkerIcon = () => {
     if (typeof window === 'undefined') return null;
-    
+
     return L.divIcon({
       html: ReactDOMServer.renderToString(
         <div className="bg-primary rounded-full p-2 shadow-lg">
           <PersonStanding className="h-6 w-6 text-primary-foreground" />
         </div>
       ),
-      className: '', // important to clear default styling
+      className: '',
       iconSize: [40, 40],
       iconAnchor: [20, 20],
     });
   };
 
-  // Initialize map
+  // Init map
   useEffect(() => {
     if (typeof window === 'undefined' || mapRef.current || !mapContainerRef.current) return;
 
@@ -77,7 +77,7 @@ export default function GuardianAngelMap({
     };
   }, []);
 
-  // Update user marker and view
+  // User marker
   useEffect(() => {
     if (!mapRef.current || !userPosition) return;
 
@@ -90,14 +90,12 @@ export default function GuardianAngelMap({
       userMarkerRef.current.setLatLng(userPosition);
     }
 
-    // Only fly to user position if there is no destination set
     if (!destination) {
       mapRef.current.flyTo(userPosition, 15);
     }
-  }, [userPosition]);
+  }, [userPosition, destination]);
 
-  
-  // Update danger zones
+  // Danger zones
   useEffect(() => {
     const layerGroup = dangerZoneLayerRef.current;
     if (!mapRef.current || !layerGroup) return;
@@ -106,10 +104,10 @@ export default function GuardianAngelMap({
 
     dangerZones.forEach((zone) => {
       const color = zone.level === 'high' ? 'red' : 'orange';
-      
+
       L.circle(zone.location, {
         radius: zone.radius,
-        color: color,
+        color,
         fillColor: color,
         fillOpacity: 0.1 + (zone.weight / 100) * 0.3,
         weight: 1,
@@ -117,41 +115,43 @@ export default function GuardianAngelMap({
     });
   }, [dangerZones]);
 
-  // Handle routing
+  // Routing
   useEffect(() => {
     if (!mapRef.current || !userPosition) return;
 
-    // Remove existing routing control if it exists
     if (routingControlRef.current) {
-        mapRef.current.removeControl(routingControlRef.current);
-        routingControlRef.current = null;
+      mapRef.current.removeControl(routingControlRef.current);
+      routingControlRef.current = null;
     }
 
     if (destination) {
-        const routingControl = L.Routing.control({
-            waypoints: [
-                L.latLng(userPosition[0], userPosition[1]),
-                L.latLng(destination[0], destination[1])
-            ],
-            routeWhileDragging: true,
-            show: false, // Hides the itinerary panel
-            addWaypoints: false,
-            lineOptions: {
-                styles: [{ color: 'hsl(var(--accent))', opacity: 0.8, weight: 6 }]
-            },
-            createMarker: () => null // We use our own markers
-        }).addTo(mapRef.current);
+      const [userLat, userLng] = userPosition as [number, number];
+      const [destLat, destLng] = destination as [number, number];
 
-        routingControlRef.current = routingControl;
+      const routingControl = L.Routing.control({
+        waypoints: [
+          L.latLng(userLat, userLng),
+          L.latLng(destLat, destLng),
+        ],
+        routeWhileDragging: true,
+        show: false,
+        addWaypoints: false,
+        lineOptions: {
+          styles: [{ color: 'hsl(var(--accent))', opacity: 0.8, weight: 6 }],
+        },
+        createMarker: () => null,
+      }).addTo(mapRef.current);
+      
+      routingControlRef.current = routingControl;
     }
   }, [userPosition, destination]);
 
 
   return (
-    <div 
-      ref={mapContainerRef} 
-      className="h-screen w-full z-10" 
-      style={{ minHeight: '400px' }} // Ensure minimum height
+    <div
+      ref={mapContainerRef}
+      className="h-screen w-full z-10"
+      style={{ minHeight: '400px' }}
     />
   );
 }
