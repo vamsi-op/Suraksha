@@ -25,8 +25,6 @@ interface GuardianAngelMapProps {
   userPosition: LatLngExpression | null;
   destination: LatLngExpression | null;
   dangerZones: DangerZone[];
-  unsafeRouteSegments: LatLngExpression[][];
-  onRouteCalculated: (routeLine: LatLngExpression[]) => void;
 }
 
 const VISAKHAPATNAM: LatLngExpression = [17.6868, 83.2185];
@@ -35,8 +33,6 @@ export default function GuardianAngelMap({
   userPosition, 
   destination, 
   dangerZones, 
-  unsafeRouteSegments, 
-  onRouteCalculated 
 }: GuardianAngelMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -44,7 +40,6 @@ export default function GuardianAngelMap({
   const destinationMarkerRef = useRef<L.Marker | null>(null);
   const dangerZoneLayerRef = useRef<L.LayerGroup | null>(null);
   const routeLineRef = useRef<L.Polyline | null>(null);
-  const unsafeSegmentsLayerRef = useRef<L.LayerGroup | null>(null);
   const { toast } = useToast();
 
   // Create user marker icon only on client side
@@ -76,7 +71,6 @@ export default function GuardianAngelMap({
       }).addTo(mapRef.current);
 
       dangerZoneLayerRef.current = L.layerGroup().addTo(mapRef.current);
-      unsafeSegmentsLayerRef.current = L.layerGroup().addTo(mapRef.current);
     } catch (error) {
       console.error('Error initializing map:', error);
       toast({
@@ -159,7 +153,7 @@ export default function GuardianAngelMap({
     }
   }, [dangerZones]);
 
-  // Custom routing with direct API calls to avoid leaflet-routing-machine issues
+  // Custom routing with direct API calls
   useEffect(() => {
     if (!mapRef.current || !userPosition) return;
     
@@ -172,24 +166,13 @@ export default function GuardianAngelMap({
         console.error('Error removing route line:', error);
       }
     }
-    
-    // Clear unsafe segments layer and any existing route lines
-    unsafeSegmentsLayerRef.current?.clearLayers();
 
     if (destination) {
-      // Debug coordinate extraction
-      console.log('User position:', userPosition);
-      console.log('Destination:', destination);
-      
-      // Extract coordinates with better type checking
       let startLat: number, startLng: number, endLat: number, endLng: number;
       
       if (Array.isArray(userPosition)) {
         startLat = userPosition[0];
         startLng = userPosition[1];
-      } else if (userPosition && typeof userPosition === 'object') {
-        startLat = (userPosition as any).lat;
-        startLng = (userPosition as any).lng;
       } else {
         console.error('Invalid userPosition format:', userPosition);
         return;
@@ -198,18 +181,12 @@ export default function GuardianAngelMap({
       if (Array.isArray(destination)) {
         endLat = destination[0];
         endLng = destination[1];
-      } else if (destination && typeof destination === 'object') {
-        endLat = (destination as any).lat;
-        endLng = (destination as any).lng;
       } else {
         console.error('Invalid destination format:', destination);
         return;
       }
-
-      console.log('Extracted coordinates:', { startLat, startLng, endLat, endLng });
-
+      
       if (isNaN(startLat) || isNaN(startLng) || isNaN(endLat) || isNaN(endLng)) {
-        console.error('Invalid coordinates - NaN values:', { startLat, startLng, endLat, endLng });
         toast({
           variant: 'destructive',
           title: 'Invalid Coordinates',
@@ -217,171 +194,64 @@ export default function GuardianAngelMap({
         });
         return;
       }
+      
+      const getRouteFromAPI = async () => {
+        const url = `https://router.project-osrm.org/route/v1/foot/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`;
+        
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8000);
+          
+          const response = await fetch(url, { signal: controller.signal });
+          clearTimeout(timeoutId);
 
-      // Function to create direct line fallback
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.warn(`OSRM HTTP Error:`, response.status, errorText);
+            return null;
+          }
+
+          const data = await response.json();
+          if (data.routes?.[0]?.geometry?.coordinates) {
+            return data.routes[0].geometry.coordinates.map((coord: number[]) => [coord[1], coord[0]] as LatLngExpression);
+          }
+          return null;
+        } catch (error) {
+          console.warn(`OSRM routing failed:`, error);
+          return null;
+        }
+      };
+      
       const createDirectLine = (isDashed = false) => {
+        if(!mapRef.current) return;
         const directRoute = [
           [startLat, startLng] as LatLngExpression,
           [endLat, endLng] as LatLngExpression
         ];
-
-        const lineOptions = {
-          color: 'hsl(var(--accent))',
-          opacity: 0.8,
-          weight: 6,
-          ...(isDashed && { dashArray: '10, 10' })
-        };
-
-        const directLine = L.polyline(directRoute, lineOptions).addTo(mapRef.current!);
-        
-        // Store reference for cleanup
-        routeLineRef.current = directLine;
-
-        onRouteCalculated(directRoute);
-
-        // Fit map to show the route
+        const lineOptions = { color: 'hsl(var(--accent))', opacity: 0.8, weight: 6, ...(isDashed && { dashArray: '10, 10' }) };
+        routeLineRef.current = L.polyline(directRoute, lineOptions).addTo(mapRef.current);
         const bounds = L.latLngBounds(directRoute);
-        mapRef.current?.fitBounds(bounds, { padding: [50, 50] });
-
-        return directRoute;
+        mapRef.current.fitBounds(bounds, { padding: [50, 50] });
       };
 
-      // Try to get route using direct API call (with better error handling)
-      const getRouteFromAPI = async () => {
-        const routingServices = [
-          {
-            name: 'OSRM Demo',
-            url: `https://router.project-osrm.org/route/v1/foot/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`,
-            parseResponse: (data: any) => {
-              console.log('OSRM response:', data);
-              if (data.routes?.[0]?.geometry?.coordinates) {
-                return data.routes[0].geometry.coordinates.map((coord: number[]) => [coord[1], coord[0]] as LatLngExpression);
-              }
-              return null;
-            }
-          }
-        ];
-
-        for (const service of routingServices) {
-          try {
-            console.log(`Trying ${service.name} routing service...`);
-            console.log(`URL: ${service.url}`);
-            
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000);
-            
-            const response = await fetch(service.url, {
-              method: 'GET',
-              headers: {
-                'Accept': 'application/json',
-                'User-Agent': 'Suraksha Safety App'
-              },
-              signal: controller.signal
+      getRouteFromAPI().then((routeCoordinates) => {
+        if (routeCoordinates && routeCoordinates.length > 0 && mapRef.current) {
+            routeLineRef.current = L.polyline(routeCoordinates, { color: 'hsl(var(--accent))', opacity: 0.8, weight: 6 }).addTo(mapRef.current);
+            const bounds = L.latLngBounds(routeCoordinates);
+            mapRef.current.fitBounds(bounds, { padding: [50, 50] });
+            toast({ title: 'Route Found', description: `Walking route calculated.` });
+        } else {
+            createDirectLine(true);
+            toast({
+              variant: 'default',
+              title: 'Direct Path',
+              description: 'Routing service unavailable. Showing direct path to destination.',
             });
-
-            clearTimeout(timeoutId);
-
-            console.log(`${service.name} response status:`, response.status);
-
-            if (!response.ok) {
-              const errorText = await response.text();
-              // Use console.warn to avoid triggering Next.js error overlay for expected network issues
-              console.warn(`${service.name} HTTP Error:`, response.status, errorText);
-              continue;
-            }
-
-            const data = await response.json();
-            console.log(`${service.name} data:`, data);
-            
-            const routeCoordinates = service.parseResponse(data);
-
-            if (routeCoordinates && routeCoordinates.length > 0) {
-              console.log(`Successfully got route from ${service.name}, points:`, routeCoordinates.length);
-              
-              // Draw the route
-              const routeLine = L.polyline(routeCoordinates, {
-                color: 'hsl(var(--accent))',
-                opacity: 0.8,
-                weight: 6
-              }).addTo(mapRef.current!);
-
-              routeLineRef.current = routeLine;
-
-              onRouteCalculated(routeCoordinates);
-
-              // Fit map to show the route
-              const bounds = L.latLngBounds(routeCoordinates);
-              mapRef.current?.fitBounds(bounds, { padding: [50, 50] });
-
-              toast({
-                variant: 'default',
-                title: 'Route Found',
-                description: `Safe walking route calculated via ${service.name}.`,
-              });
-
-              return true; // Success
-            } else {
-              console.warn(`${service.name} returned no valid route coordinates`);
-            }
-          } catch (error) {
-            console.warn(`${service.name} routing failed:`, error);
-            continue; // Try next service
-          }
         }
-
-        console.log('All routing services failed');
-        return false; // All services failed
-      };
-
-      // Try to get route, fallback to direct line
-      getRouteFromAPI().then((success) => {
-        if (!success) {
-          console.log('All routing services failed, using direct line fallback');
-          createDirectLine(true); // Dashed line to indicate fallback
-          
-          toast({
-            variant: 'default',
-            title: 'Direct Path',
-            description: 'Showing direct route. Routing services unavailable - this is normal and the app will still help you navigate safely.',
-          });
-        }
-      }).catch((error) => {
-        console.log('Routing completely failed with error:', error);
-        createDirectLine(true);
-        
-        toast({
-          variant: 'default',
-          title: 'Basic Direction',
-          description: 'Showing straight-line direction to destination. This will still help guide you safely.',
-        });
       });
     }
-  }, [userPosition, destination, onRouteCalculated, toast]);
+  }, [userPosition, destination, toast]);
 
-  // Draw unsafe route segments
-  useEffect(() => {
-    const layerGroup = unsafeSegmentsLayerRef.current;
-    if (!mapRef.current || !layerGroup) return;
-
-    layerGroup.clearLayers();
-
-    if (unsafeRouteSegments.length > 0) {
-      try {
-        unsafeRouteSegments.forEach(segment => {
-          if (segment && segment.length > 1) {
-            L.polyline(segment, { 
-              color: 'red', 
-              weight: 8, 
-              opacity: 0.8,
-              dashArray: '10, 10' // Make unsafe segments dashed for better visibility
-            }).addTo(layerGroup);
-          }
-        });
-      } catch (error) {
-        console.error('Error drawing unsafe segments:', error);
-      }
-    }
-  }, [unsafeRouteSegments]);
 
   return (
     <div 

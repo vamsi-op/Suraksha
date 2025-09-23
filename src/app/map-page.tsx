@@ -4,14 +4,13 @@ import { useState, useEffect, useRef } from 'react';
 import type { DangerZone, LatLngExpression } from '@/lib/definitions';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
-import { triggerSOS } from '@/lib/actions';
 import { useAuth } from '@/lib/firebase/auth-context';
 
 import ControlPanel from '@/components/control-panel';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { PanelLeft, Loader2 } from 'lucide-react';
-import { getDistance, isLineSegmentIntersectingCircle } from '@/lib/utils';
+import { getDistance } from '@/lib/utils';
 import dynamic from 'next/dynamic';
 
 const GuardianAngelMap = dynamic(() => import('@/components/guardian-angel-map'), { 
@@ -45,7 +44,6 @@ const VISAKHAPATNAM: LatLngExpression = [17.6868, 83.2185];
 export default function MapPage() {
   const [userPosition, setUserPosition] = useState<LatLngExpression | null>(null);
   const [destination, setDestination] = useState<LatLngExpression | null>(null);
-  const [unsafeRouteSegments, setUnsafeRouteSegments] = useState<LatLngExpression[][]>([]);
   const [isTracking, setIsTracking] = useState(false);
   const [trackingSeconds, setTrackingSeconds] = useState(1800);
   const alertedZones = useRef<Set<string>>(new Set());
@@ -107,7 +105,6 @@ export default function MapPage() {
   const handleSetDestination = async (address: string) => {
     if (!address) {
       setDestination(null);
-      setUnsafeRouteSegments([]);
       return;
     }
 
@@ -119,7 +116,7 @@ export default function MapPage() {
       if (data && data.length > 0) {
         const { lat, lon } = data[0];
         setDestination([parseFloat(lat), parseFloat(lon)]);
-        toast({ title: "Destination Set", description: "Calculating the safest route..." });
+        toast({ title: "Destination Set", description: "Calculating route..." });
       } else {
         toast({ variant: 'destructive', title: "Address Not Found", description: "Could not find the specified location." });
         setDestination(null);
@@ -131,65 +128,12 @@ export default function MapPage() {
     }
   };
 
-  const handleRouteAnalysis = (routeLine: LatLngExpression[]) => {
-    const unsafeSegments: LatLngExpression[][] = [];
-    if (!routeLine || routeLine.length < 2) return;
-
-    for (let i = 0; i < routeLine.length - 1; i++) {
-        const segment: [LatLngExpression, LatLngExpression] = [routeLine[i], routeLine[i+1]];
-        let segmentIsUnsafe = false;
-        for (const zone of DANGER_ZONES) {
-            if (isLineSegmentIntersectingCircle(segment, zone.location, zone.radius)) {
-                segmentIsUnsafe = true;
-                break;
-            }
-        }
-        if (segmentIsUnsafe) {
-            unsafeSegments.push(segment);
-        }
-    }
-    
-    setUnsafeRouteSegments(unsafeSegments);
-
-    if(unsafeSegments.length > 0) {
-        toast({
-            variant: 'destructive',
-            title: '⚠️ Unsafe Route Detected',
-            description: 'Your route passes through known danger zones. Unsafe segments are highlighted on the map.'
-        })
-    } else {
-        toast({
-            title: '✅ Route is Clear',
-            description: 'No known danger zones were found along your route.'
-        })
-    }
-  };
-
   const handleSos = async () => {
-    if (!userPosition) {
-        toast({ variant: 'destructive', title: 'Cannot send SOS', description: 'Your location is not available.' });
-        return;
-    }
-    if (!user) {
-        toast({ variant: 'destructive', title: 'Cannot send SOS', description: 'You must be logged in to use this feature.' });
-        return;
-    }
-    const location = { lat: userPosition[0], lng: userPosition[1] };
-    const result = await triggerSOS(user.uid, location);
-    
-    if (result.success) {
-      toast({
-        variant: 'destructive',
-        title: 'SOS Activated',
-        description: result.message,
-      });
-    } else {
-      toast({
-        variant: 'destructive',
-        title: 'SOS Failed',
-        description: result.message,
-      });
-    }
+    toast({
+      variant: 'default',
+      title: 'SOS Feature (Prototype)',
+      description: 'This is a demo. In a real app, your location would be sent to emergency contacts.',
+    });
   };
 
   const handleToggleTracking = () => {
@@ -217,8 +161,6 @@ export default function MapPage() {
         userPosition={userPosition}
         destination={destination}
         dangerZones={DANGER_ZONES}
-        onRouteCalculated={handleRouteAnalysis}
-        unsafeRouteSegments={unsafeRouteSegments}
       />
       {isMobile ? (
         <Sheet>

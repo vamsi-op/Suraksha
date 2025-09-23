@@ -106,7 +106,7 @@ export default function ControlPanel({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Activate SOS?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will immediately send your current location to your emergency contacts. Are you sure you want to proceed?
+                    This is a prototype feature. In a real app, this would send your location to emergency contacts.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
