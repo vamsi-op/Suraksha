@@ -132,17 +132,19 @@ export default function GuardianAngelMap({ userPosition, destination, dangerZone
         lineOptions: {
             styles: [{ color: '#2563eb', opacity: 0.8, weight: 6 }]
         },
-        // This is the key change to permanently fix the error.
-        // We create a custom plan that overrides the default error handling.
         plan: new L.Routing.Plan([], {
           createGeocoder: function() {
             return {
               geocode: function(waypoint: L.Routing.Waypoint, callback: (results: any) => void) {
-                // We don't need a geocoder here, so we just return.
                 callback([]);
               },
+              reverse: function(location: L.LatLng, scale: number, callback: (results: any) => void) {
+                callback([]);
+              }
             };
-          }
+          },
+           // This will prevent the default error handler from logging to the console.
+          defaultErrorHandler: function() {}
         })
       }).addTo(mapRef.current);
 
@@ -154,8 +156,7 @@ export default function GuardianAngelMap({ userPosition, destination, dangerZone
           }
       });
        
-      routingControl.on('routingerror', function(e: L.Routing.RoutingErrorEvent) {
-        // This handler now reliably catches the error without the default console log.
+      routingControl.on('routingerror', function() {
         toast({
           variant: 'destructive',
           title: 'Routing Error',
@@ -165,7 +166,7 @@ export default function GuardianAngelMap({ userPosition, destination, dangerZone
 
       routingControlRef.current = routingControl;
     }
-  }, [userPosition, destination, onRouteCalculated, toast]);
+  }, [userPosition, destination, onRouteCalculated]);
 
     // Draw unsafe route segments
     useEffect(() => {
