@@ -5,6 +5,7 @@ import type { DangerZone, LatLngExpression } from '@/lib/definitions';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
 import { triggerSOS } from '@/lib/actions';
+import { useAuth } from '@/lib/firebase/auth-context';
 
 import ControlPanel from '@/components/control-panel';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -50,6 +51,7 @@ export default function MapPage() {
   const alertedZones = useRef<Set<string>>(new Set());
   const isMobile = useIsMobile();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     const watchId = navigator.geolocation.watchPosition(
@@ -168,8 +170,12 @@ export default function MapPage() {
         toast({ variant: 'destructive', title: 'Cannot send SOS', description: 'Your location is not available.' });
         return;
     }
+    if (!user) {
+        toast({ variant: 'destructive', title: 'Cannot send SOS', description: 'You must be logged in to use this feature.' });
+        return;
+    }
     const location = { lat: userPosition[0], lng: userPosition[1] };
-    const result = await triggerSOS(location);
+    const result = await triggerSOS(user.uid, location);
     
     if (result.success) {
       toast({

@@ -32,7 +32,8 @@ export default function ProfilePage() {
   const fetchContacts = async () => {
     setLoading(true);
     try {
-      const userContacts = await getUserContacts();
+      if (!user) return;
+      const userContacts = await getUserContacts(user.uid);
       setContacts(userContacts);
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch contacts.' });

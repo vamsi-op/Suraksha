@@ -7,12 +7,13 @@ interface SosResult {
   message: string;
 }
 
-export async function triggerSOS(location: { lat: number; lng: number }): Promise<SosResult> {
+export async function triggerSOS(userId: string, location: { lat: number; lng: number }): Promise<SosResult> {
   console.log('--- SOS TRIGGERED ---');
+  console.log(`User ID: ${userId}`);
   console.log(`Emergency at location: https://www.google.com/maps?q=${location.lat},${location.lng}`);
 
   try {
-    const contacts = await getUserContacts();
+    const contacts = await getUserContacts(userId);
     if (contacts.length > 0) {
       console.log('Emergency contacts found:', contacts.map(c => c.name));
       console.log('Simulating sending SMS to emergency contacts...');
