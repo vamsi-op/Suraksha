@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/firebase/auth-context';
-import { addContact, getUserContacts, deleteContact } from '@/lib/firebase/firestore';
+import { addContact, getClientUserContacts, deleteContact } from '@/lib/firebase/firestore';
 import type { EmergencyContact } from '@/lib/definitions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,7 +33,7 @@ export default function ProfilePage() {
     setLoading(true);
     try {
       if (!user) return;
-      const userContacts = await getUserContacts(user.uid);
+      const userContacts = await getClientUserContacts();
       setContacts(userContacts);
     } catch (error) {
       toast({ variant: 'destructive', title: 'Error', description: 'Failed to fetch contacts.' });
