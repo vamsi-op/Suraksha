@@ -20,14 +20,14 @@ const GuardianAngelMap = dynamic(() => import('@/components/guardian-angel-map')
 
 
 const DANGER_ZONES: DangerZone[] = [
-  { id: 'zone1', location: [28.6330, 77.2195], weight: 70, radius: 1000 }, // Connaught Place area
-  { id: 'zone2', location: [28.6428, 77.2219], weight: 90, radius: 1200 }, // Near New Delhi Railway Station
-  { id: 'zone3', location: [28.6518, 77.1910], weight: 60, radius: 1500 }, // Karol Bagh
-  { id: 'zone4', location: [28.6423, 77.2131], weight: 85, radius: 800 },   // Paharganj
+  { id: 'zone1', location: [17.7247, 83.3005], weight: 80, radius: 1000 }, // RTC Complex area
+  { id: 'zone2', location: [17.6750, 83.2010], weight: 70, radius: 1500 }, // Gajuwaka
+  { id: 'zone3', location: [17.7126, 83.2982], weight: 90, radius: 800 },  // Jagadamba Centre
+  { id: 'zone4', location: [17.7180, 83.3240], weight: 65, radius: 1200 }, // Beach Road area
 ];
 
 const PROXIMITY_THRESHOLD_METERS = 500;
-const NEW_DELHI: LatLngExpression = [28.6139, 77.2090];
+const VISAKHAPATNAM: LatLngExpression = [17.6868, 83.2185];
 
 export default function MapPage() {
   const [userPosition, setUserPosition] = useState<LatLngExpression | null>(null);
@@ -46,8 +46,8 @@ export default function MapPage() {
         checkProximity(pos);
       },
       () => {
-        console.warn('Geolocation permission denied. Defaulting to New Delhi.');
-        setUserPosition(NEW_DELHI);
+        console.warn('Geolocation permission denied. Defaulting to Visakhapatnam.');
+        setUserPosition(VISAKHAPATNAM);
       },
       { enableHighAccuracy: true }
     );
