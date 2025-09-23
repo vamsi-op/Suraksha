@@ -135,7 +135,7 @@ export default function GuardianAngelMap({ userPosition, dangerZones, destinatio
     }
 
     const waypoints = [L.latLng(userPosition), L.latLng(destination)];
-    const mainRoute = createRoutingControl(waypoints, '#8764B8'); // Accent color
+    const mainRoute = createRoutingControl(waypoints, 'hsl(var(--accent))');
     
     mainRoute.on('routingerror', () => {
         toast({
@@ -167,6 +167,11 @@ export default function GuardianAngelMap({ userPosition, dangerZones, destinatio
       }
       
       if(intersectsDangerZone) {
+        toast({
+            variant: 'destructive',
+            title: 'Route Warning',
+            description: 'Your planned route passes through a potentially unsafe area. Please be cautious.',
+        });
         // This is where you would calculate an alternative "safe" route.
         // For now, we will just highlight the dangerous route.
         if (routingControlRef.current) {
