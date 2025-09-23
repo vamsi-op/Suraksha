@@ -127,21 +127,17 @@ export default function MapPage() {
       }
       const data = await response.json();
       
-      if (data && data.length > 0) {
+      if (data && data.length > 0 && data[0].lat && data[0].lon) {
         const { lat, lon, display_name } = data[0];
-        if (lat && lon) {
-            const newDestination: LatLngExpression = [parseFloat(lat), parseFloat(lon)];
-            setDestination(newDestination);
-            toast({ title: 'Destination Set', description: `Route planned to ${display_name}` });
-        } else {
-            throw new Error('Invalid coordinates received.');
-        }
+        const newDestination: LatLngExpression = [parseFloat(lat), parseFloat(lon)];
+        setDestination(newDestination);
+        toast({ title: 'Destination Set', description: `Route planned to ${display_name}` });
       } else {
-        toast({ variant: 'destructive', title: 'Address not found', description: 'Please try a different address.' });
+        toast({ variant: 'destructive', title: 'Address Not Found', description: 'Could not find coordinates for the address. Please try a different one.' });
       }
     } catch (error) {
-      console.error('Error geocoding address:', error);
-      toast({ variant: 'destructive', title: 'Routing Error', description: 'Could not set destination. The address might be invalid or the service is unavailable.' });
+      console.error('Error setting destination:', error);
+      toast({ variant: 'destructive', title: 'Routing Error', description: 'Could not set destination. Please check the address or try again later.' });
     }
   };
 
