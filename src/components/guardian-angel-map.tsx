@@ -5,9 +5,13 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-routing-machine';
 import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
+// Import GraphHopper support
+import 'leaflet-routing-machine/dist/leaflet-routing-machine.graphhopper.js';
+
 import ReactDOMServer from 'react-dom/server';
 import { PersonStanding } from 'lucide-react';
 import type { DangerZone, LatLngExpression } from '@/lib/definitions';
+import { useToast } from '@/hooks/use-toast';
 
 // Fix Leaflet icons in Next.js
 if (typeof window !== 'undefined' && L.Icon.Default.prototype) {
@@ -39,6 +43,7 @@ export default function GuardianAngelMap({
   const userMarkerRef = useRef<L.Marker | null>(null);
   const dangerZoneLayerRef = useRef<L.LayerGroup | null>(null);
   const routingControlRef = useRef<L.Routing.Control | null>(null);
+  const { toast } = useToast();
 
   // User marker icon
   const getUserMarkerIcon = () => {
@@ -143,8 +148,17 @@ export default function GuardianAngelMap({
       }).addTo(mapRef.current);
       
       routingControlRef.current = routingControl;
+
+       routingControl.on('routingerror', (e) => {
+        console.warn('Routing error:', e.error);
+        toast({
+          variant: 'destructive',
+          title: 'Routing Error',
+          description: 'Could not find a route. The destination may be unreachable.',
+        });
+      });
     }
-  }, [userPosition, destination]);
+  }, [userPosition, destination, toast]);
 
 
   return (
