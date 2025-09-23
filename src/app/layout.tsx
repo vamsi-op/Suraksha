@@ -4,7 +4,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/lib/firebase/auth-context';
 
 export const metadata: Metadata = {
-  title: 'Guardian Angel',
+  title: 'Suraksha',
   description: 'Your personal safety companion',
 };
 

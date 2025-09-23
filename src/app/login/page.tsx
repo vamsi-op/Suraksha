@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { GuardianAngelLogo } from '@/components/icons';
+import { SurakshaLogo } from '@/components/icons';
 import AuthGate from '../auth-gate';
 
 export default function LoginPage() {
@@ -44,10 +44,10 @@ export default function LoginPage() {
         <Card className="w-full max-w-md">
             <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex justify-center">
-                <GuardianAngelLogo className="h-16 w-16 text-primary" />
+                <SurakshaLogo className="h-16 w-16 text-primary" />
             </div>
             <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-            <CardDescription>Log in to your Guardian Angel account</CardDescription>
+            <CardDescription>Log in to your Suraksha account</CardDescription>
             </CardHeader>
             <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">

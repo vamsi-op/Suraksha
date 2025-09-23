@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { GuardianAngelLogo } from './icons';
+import { SurakshaLogo } from './icons';
 import { Siren, Share2, XCircle, Timer, User, LogOut, MapPin, Search } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/lib/firebase/auth-context';
@@ -62,9 +62,9 @@ export default function ControlPanel({
       <CardHeader>
         <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <GuardianAngelLogo className="h-10 w-10 text-primary" />
+              <SurakshaLogo className="h-10 w-10 text-primary" />
               <div>
-                <CardTitle className="text-2xl font-bold text-primary">Guardian Angel</CardTitle>
+                <CardTitle className="text-2xl font-bold text-primary">Suraksha</CardTitle>
                 <CardDescription>Welcome, {user?.email || 'Guest'}</CardDescription>
               </div>
             </div>
@@ -179,7 +179,7 @@ export default function ControlPanel({
         
       </CardContent>
       <CardFooter>
-        <p className="text-xs text-muted-foreground text-center w-full">Stay aware, stay safe. Guardian Angel is here to help.</p>
+        <p className="text-xs text-muted-foreground text-center w-full">Stay aware, stay safe. Suraksha is here to help.</p>
       </CardFooter>
     </Card>
   );
