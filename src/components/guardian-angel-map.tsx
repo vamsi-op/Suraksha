@@ -5,11 +5,12 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-routing-machine';
 import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
+// Import GraphHopper support
+import 'leaflet-routing-machine/dist/leaflet-routing-machine.graphhopper.js';
 
 import ReactDOMServer from 'react-dom/server';
 import { PersonStanding } from 'lucide-react';
 import type { DangerZone, LatLngExpression } from '@/lib/definitions';
-import { useToast } from '@/hooks/use-toast';
 
 // Fix Leaflet icons in Next.js
 if (typeof window !== 'undefined' && L.Icon.Default.prototype) {
@@ -41,7 +42,6 @@ export default function GuardianAngelMap({
   const userMarkerRef = useRef<L.Marker | null>(null);
   const dangerZoneLayerRef = useRef<L.LayerGroup | null>(null);
   const routingControlRef = useRef<L.Routing.Control | null>(null);
-  const { toast } = useToast();
 
   // User marker icon
   const getUserMarkerIcon = () => {
@@ -96,7 +96,7 @@ export default function GuardianAngelMap({
     if (!destination) {
       mapRef.current.flyTo(userPosition, 15);
     }
-  }, [userPosition, destination]);
+  }, [userPosition]);
 
   // Danger zones
   useEffect(() => {
@@ -118,7 +118,7 @@ export default function GuardianAngelMap({
     });
   }, [dangerZones]);
 
-  // Routing
+  // Routing with GraphHopper
   useEffect(() => {
     if (!mapRef.current || !userPosition) return;
 
@@ -131,11 +131,17 @@ export default function GuardianAngelMap({
       const [userLat, userLng] = userPosition as [number, number];
       const [destLat, destLng] = destination as [number, number];
 
+      const graphHopperRouter = L.Routing.graphHopper(
+        "af3033f0-e0ee-43fe-b8d9-67aef2b6b707", // 🔑 replace with your key
+        { urlParameters: { vehicle: "car" } }
+      );
+
       const routingControl = L.Routing.control({
         waypoints: [
           L.latLng(userLat, userLng),
           L.latLng(destLat, destLng),
         ],
+        router: graphHopperRouter,
         routeWhileDragging: true,
         show: false,
         addWaypoints: false,
@@ -144,20 +150,14 @@ export default function GuardianAngelMap({
         },
         createMarker: () => null,
       }).addTo(mapRef.current);
-      
-      routingControlRef.current = routingControl;
 
-       routingControl.on('routingerror', (e) => {
-        console.warn('Routing error:', e.error);
-        toast({
-          variant: 'destructive',
-          title: 'Routing Error',
-          description: 'Could not find a route. The destination may be unreachable.',
-        });
+      routingControl.on('routingerror', (e) => {
+        console.error("GraphHopper routing failed:", e);
       });
-    }
-  }, [userPosition, destination, toast]);
 
+      routingControlRef.current = routingControl;
+    }
+  }, [userPosition, destination]);
 
   return (
     <div
