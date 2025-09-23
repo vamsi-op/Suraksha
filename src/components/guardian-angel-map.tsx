@@ -134,7 +134,7 @@ export default function GuardianAngelMap({ userPosition, destination, dangerZone
         }
       }).addTo(mapRef.current);
 
-      routingControl.on('routesfound', function (e) {
+      routingControl.on('routesfound', function (e: L.Routing.RoutesFoundEvent) {
           const routes = e.routes;
           if (routes.length > 0) {
             const routeLine = routes[0].coordinates.map(c => [c.lat, c.lng] as LatLngExpression);
@@ -142,12 +142,20 @@ export default function GuardianAngelMap({ userPosition, destination, dangerZone
           }
       });
        
-      routingControl.on('routingerror', function() {
+      routingControl.on('routingerror', function(e: L.Routing.RoutingErrorEvent) {
+        // This event handler is the key fix.
+        // We show a toast and importantly, we do *not* re-throw or console.error.
+        // This prevents the default error handler from running and stops the Next.js error overlay.
         toast({
           variant: 'destructive',
           title: 'Routing Error',
-          description: 'Could not find a route to the destination. The location might be unreachable.'
+          description: 'Could not find a route to the destination. The location might be unreachable or the routing service is temporarily unavailable.'
         });
+        // By handling the event here, we prevent the default console.error log.
+        // The type definition for the event is not perfect, but 'error' property exists.
+        if (e.error) {
+           console.log("Suppressed routing error:", e.error);
+        }
       });
 
       routingControlRef.current = routingControl;
