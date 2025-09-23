@@ -5,14 +5,16 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { GuardianAngelLogo } from './icons';
-import { Siren, Share2, XCircle, Timer } from 'lucide-react';
+import { Siren, Share2, XCircle, Timer, MapPin, Search } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Input } from './ui/input';
 
 interface ControlPanelProps {
   handleSos: () => void;
   isTracking: boolean;
   trackingSeconds: number;
   handleToggleTracking: () => void;
+  handleSetDestination: (address: string) => void;
 }
 
 export default function ControlPanel({
@@ -20,8 +22,10 @@ export default function ControlPanel({
   isTracking,
   trackingSeconds,
   handleToggleTracking,
+  handleSetDestination,
 }: ControlPanelProps) {
   const [sosLoading, setSosLoading] = useState(false);
+  const [destinationAddress, setDestinationAddress] = useState('');
 
   const onSosConfirm = () => {
     setSosLoading(true);
@@ -36,6 +40,13 @@ export default function ControlPanel({
     return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   };
 
+  const onDestinationSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (destinationAddress.trim()) {
+      handleSetDestination(destinationAddress.trim());
+    }
+  }
+
   return (
     <Card className="h-full w-full flex flex-col shadow-2xl">
       <CardHeader>
@@ -48,6 +59,25 @@ export default function ControlPanel({
         </div>
       </CardHeader>
       <CardContent className="flex-grow overflow-y-auto space-y-6">
+        
+        <div className="space-y-3">
+          <h3 className="font-semibold text-foreground flex items-center"><MapPin className="mr-2 h-5 w-5 text-primary" />Plan Your Route</h3>
+          <form onSubmit={onDestinationSubmit} className="flex gap-2">
+            <Input 
+              type="text"
+              placeholder="Enter destination..."
+              value={destinationAddress}
+              onChange={(e) => setDestinationAddress(e.target.value)}
+              className="flex-grow"
+            />
+            <Button type="submit" size="icon" aria-label="Set Destination">
+              <Search className="h-4 w-4" />
+            </Button>
+          </form>
+        </div>
+
+        <Separator />
+        
         <div className="space-y-3">
           <h3 className="font-semibold text-foreground flex items-center"><Siren className="mr-2 h-5 w-5 text-destructive" />Safety Tools</h3>
           <div className="grid grid-cols-1 gap-2">

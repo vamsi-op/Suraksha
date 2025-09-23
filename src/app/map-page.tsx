@@ -31,6 +31,7 @@ const LOS_ANGELES: LatLngExpression = [34.0549, -118.2426];
 
 export default function MapPage() {
   const [userPosition, setUserPosition] = useState<LatLngExpression | null>(null);
+  const [destination, setDestination] = useState<LatLngExpression | null>(null);
   const [isTracking, setIsTracking] = useState(false);
   const [trackingSeconds, setTrackingSeconds] = useState(1800);
   const alertedZones = useRef<Set<string>>(new Set());
@@ -106,11 +107,31 @@ export default function MapPage() {
     }
   }
 
+  const handleSetDestination = async (address: string) => {
+    try {
+      // Use OpenStreetMap's Nominatim API for geocoding
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`);
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        const newDestination: LatLngExpression = [parseFloat(lat), parseFloat(lon)];
+        setDestination(newDestination);
+        toast({ title: 'Destination Set', description: `Route planned to ${data[0].display_name}` });
+      } else {
+        toast({ variant: 'destructive', title: 'Address not found', description: 'Please try a different address.' });
+      }
+    } catch (error) {
+      console.error('Error geocoding address:', error);
+      toast({ variant: 'destructive', title: 'Routing Error', description: 'Could not set destination.' });
+    }
+  };
+
   const controlPanelProps = {
     handleSos,
     isTracking,
     trackingSeconds,
     handleToggleTracking,
+    handleSetDestination,
   };
 
   return (
@@ -118,6 +139,7 @@ export default function MapPage() {
       <GuardianAngelMap
         userPosition={userPosition}
         dangerZones={DANGER_ZONES}
+        destination={destination}
       />
       {isMobile ? (
         <Sheet>
