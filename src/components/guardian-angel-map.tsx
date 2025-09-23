@@ -137,12 +137,18 @@ export default function GuardianAngelMap({ userPosition, dangerZones, destinatio
     const waypoints = [L.latLng(userPosition), L.latLng(destination)];
     const mainRoute = createRoutingControl(waypoints, 'hsl(var(--accent))');
     
-    mainRoute.on('routingerror', () => {
+    mainRoute.on('routingerror', (e) => {
+        console.error('Routing error caught:', e); // Keep for debugging
         toast({
             variant: 'destructive',
             title: 'Routing Error',
-            description: 'Could not find a route to the destination. The routing service may be unavailable. Please try again later.',
+            description: 'Could not find a route to the destination. The routing service may be unavailable or the area may be unroutable. Please try again later.',
         });
+        // Clear the failed route attempt from the map
+        if (routingControlRef.current) {
+            mapRef.current?.removeControl(routingControlRef.current);
+            routingControlRef.current = null;
+        }
     });
 
     mainRoute.on('routesfound', function(e) {
@@ -171,6 +177,7 @@ export default function GuardianAngelMap({ userPosition, dangerZones, destinatio
             variant: 'destructive',
             title: 'Route Warning',
             description: 'Your planned route passes through a potentially unsafe area. Please be cautious.',
+            duration: 8000,
         });
         // This is where you would calculate an alternative "safe" route.
         // For now, we will just highlight the dangerous route.
