@@ -6,12 +6,18 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
 import { triggerSOS } from '@/lib/actions';
 
-import GuardianAngelMap from '@/components/guardian-angel-map';
 import ControlPanel from '@/components/control-panel';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { PanelLeft } from 'lucide-react';
 import { getDistance } from '@/lib/utils';
+import dynamic from 'next/dynamic';
+
+const GuardianAngelMap = dynamic(() => import('@/components/guardian-angel-map'), { 
+  ssr: false,
+  loading: () => <div className="h-screen w-screen bg-muted flex items-center justify-center"><p>Loading map...</p></div>
+});
+
 
 const DANGER_ZONES: DangerZone[] = [
   { id: 'zone1', location: [34.052235, -118.243683], weight: 50, radius: 1000 },
