@@ -164,7 +164,12 @@ export default function GuardianAngelMap({
 
           // Handle routing errors
           routingControl.on('routingerror', (e) => {
-            console.warn('Routing Error:', e.error);
+            // Use console.warn to avoid Next.js error overlay for non-critical network issues
+            if (e && e.error) {
+              console.warn('Routing Error:', e.error);
+            } else {
+              console.warn('An unknown routing error occurred.');
+            }
             toast({
               variant: 'destructive',
               title: 'Routing Error',
