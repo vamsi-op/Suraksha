@@ -19,25 +19,40 @@ export const addContact = async (contact: { name: string; phone: string }) => {
 };
 
 // Get all emergency contacts for a given user ID
-// This function can now be called from the client or server
+// This function can be called from the client or server
 export const getUserContacts = async (userId: string): Promise<EmergencyContact[]> => {
   // Determine if we are on the server or client
   const isServer = typeof window === 'undefined';
-  const firestoreInstance = isServer ? adminDb : db;
-
-  const contactsRef = firestoreInstance.collection('users').doc(userId).collection('contacts');
-  const snapshot = await contactsRef.get();
   
-  if (snapshot.empty) {
-    return [];
+  if (isServer) {
+    // SERVER-SIDE LOGIC (using Admin SDK)
+    const contactsRef = adminDb.collection('users').doc(userId).collection('contacts');
+    const snapshot = await contactsRef.get();
+    
+    if (snapshot.empty) {
+      return [];
+    }
+    const contacts: EmergencyContact[] = [];
+    snapshot.forEach(doc => {
+      contacts.push({ id: doc.id, ...doc.data() } as EmergencyContact);
+    });
+    return contacts;
+
+  } else {
+    // CLIENT-SIDE LOGIC (using Client SDK)
+    const contactsRef = collection(db, 'users', userId, 'contacts');
+    const q = query(contactsRef);
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      return [];
+    }
+    const contacts: EmergencyContact[] = [];
+    snapshot.forEach(doc => {
+      contacts.push({ id: doc.id, ...doc.data() } as EmergencyContact);
+    });
+    return contacts;
   }
-
-  const contacts: EmergencyContact[] = [];
-  snapshot.forEach(doc => {
-    contacts.push({ id: doc.id, ...doc.data() } as EmergencyContact);
-  });
-  
-  return contacts;
 };
 
 // This version is specifically for client-side use where auth.currentUser is available
@@ -45,7 +60,6 @@ export const getClientUserContacts = async (): Promise<EmergencyContact[]> => {
     const userId = getCurrentUserId();
     return getUserContacts(userId);
 }
-
 
 // Delete an emergency contact (CLIENT-SIDE)
 export const deleteContact = async (contactId: string) => {
