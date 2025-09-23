@@ -5,6 +5,7 @@ export type DangerZone = {
   location: LatLngExpression;
   weight: number;
   radius: number; // in meters
+  level: 'high' | 'moderate';
 };
 
 export interface EmergencyContact {

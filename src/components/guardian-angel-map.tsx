@@ -102,11 +102,13 @@ export default function GuardianAngelMap({ userPosition, dangerZones, destinatio
     layerGroup.clearLayers();
 
     dangerZones.forEach((zone) => {
+      const color = zone.level === 'high' ? 'red' : 'yellow';
+      
       L.circle(zone.location, {
         radius: zone.radius,
-        color: 'red',
-        fillColor: 'red',
-        fillOpacity: 0.1 + (zone.weight / 100) * 0.4,
+        color: color,
+        fillColor: color,
+        fillOpacity: 0.1 + (zone.weight / 100) * 0.3,
         weight: 1,
       }).addTo(layerGroup);
     });

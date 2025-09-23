@@ -20,13 +20,18 @@ const GuardianAngelMap = dynamic(() => import('@/components/guardian-angel-map')
 
 
 const DANGER_ZONES: DangerZone[] = [
-  { id: 'zone1', location: [17.7247, 83.3005], weight: 80, radius: 1000 }, // RTC Complex area
-  { id: 'zone2', location: [17.6750, 83.2010], weight: 70, radius: 1500 }, // Gajuwaka
-  { id: 'zone3', location: [17.7126, 83.2982], weight: 90, radius: 800 },  // Jagadamba Centre
-  { id: 'zone4', location: [17.7180, 83.3240], weight: 65, radius: 1200 }, // Beach Road area
+  // High-risk (Red) zones - fewer and more critical
+  { id: 'zone3', location: [17.7126, 83.2982], weight: 90, radius: 400, level: 'high' },  // Jagadamba Centre
+  { id: 'zone1', location: [17.7247, 83.3005], weight: 80, radius: 500, level: 'high' }, // RTC Complex area
+
+  // Moderate-risk (Yellow) zones - more widespread
+  { id: 'zone2', location: [17.6750, 83.2010], weight: 70, radius: 800, level: 'moderate' }, // Gajuwaka
+  { id: 'zone4', location: [17.7180, 83.3240], weight: 65, radius: 700, level: 'moderate' }, // Beach Road area
+  { id: 'zone5', location: [17.7386, 83.3184], weight: 60, radius: 600, level: 'moderate' }, // MVP Colony
+  { id: 'zone6', location: [17.7050, 83.2800], weight: 50, radius: 900, level: 'moderate' }, // Old Town / Port Area
 ];
 
-const PROXIMITY_THRESHOLD_METERS = 500;
+const PROXIMITY_THRESHOLD_METERS = 200;
 const VISAKHAPATNAM: LatLngExpression = [17.6868, 83.2185];
 
 export default function MapPage() {
@@ -77,8 +82,8 @@ export default function MapPage() {
       if (distance < zone.radius + PROXIMITY_THRESHOLD_METERS) {
         toast({
           variant: 'destructive',
-          title: '⚠️ Danger Zone Alert',
-          description: `You are approaching a high-risk area. Please be cautious.`,
+          title: `⚠️ ${zone.level === 'high' ? 'High-Risk' : 'Moderate-Risk'} Zone Alert`,
+          description: `You are approaching a potentially unsafe area. Please be cautious.`,
         });
         alertedZones.current.add(zone.id);
       }
