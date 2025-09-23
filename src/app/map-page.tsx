@@ -122,6 +122,9 @@ export default function MapPage() {
   const handleSetDestination = async (address: string) => {
     try {
       const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`);
+      if (!response.ok) {
+        throw new Error('Geocoding service failed.');
+      }
       const data = await response.json();
       
       if (data && data.length > 0) {
