@@ -141,7 +141,7 @@ export default function GuardianAngelMap({ userPosition, dangerZones, destinatio
         toast({
             variant: 'destructive',
             title: 'Routing Error',
-            description: 'Could not find a route to the destination. Please try a different location.',
+            description: 'Could not find a route to the destination. The routing service may be unavailable. Please try again later.',
         });
     });
 
