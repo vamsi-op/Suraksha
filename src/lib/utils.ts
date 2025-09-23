@@ -21,3 +21,51 @@ export function getDistance(point1: LatLngExpression, point2: LatLngExpression):
 
   return R * c; // in meters
 }
+
+
+// Check if a line segment intersects with a circle
+export function isLineSegmentIntersectingCircle(
+  segment: [LatLngExpression, LatLngExpression],
+  circleCenter: LatLngExpression,
+  circleRadius: number
+): boolean {
+  // Convert lat/lon to a simple Cartesian-like coordinate system for local calculations.
+  // This is an approximation but good enough for small distances.
+  const metersPerDegree = 111320; // Approximate meters per degree of latitude
+
+  const p1 = {
+    x: segment[0][1] * metersPerDegree * Math.cos(segment[0][0] * Math.PI / 180),
+    y: segment[0][0] * metersPerDegree,
+  };
+  const p2 = {
+    x: segment[1][1] * metersPerDegree * Math.cos(segment[1][0] * Math.PI / 180),
+    y: segment[1][0] * metersPerDegree,
+  };
+  const center = {
+    x: circleCenter[1] * metersPerDegree * Math.cos(circleCenter[0] * Math.PI / 180),
+    y: circleCenter[0] * metersPerDegree,
+  };
+
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  
+  if (dx === 0 && dy === 0) { // segment is a point
+    const dist = Math.sqrt((p1.x - center.x)**2 + (p1.y - center.y)**2);
+    return dist <= circleRadius;
+  }
+
+  const t = ((center.x - p1.x) * dx + (center.y - p1.y) * dy) / (dx * dx + dy * dy);
+
+  let closestPoint;
+  if (t < 0) {
+    closestPoint = p1;
+  } else if (t > 1) {
+    closestPoint = p2;
+  } else {
+    closestPoint = { x: p1.x + t * dx, y: p1.y + t * dy };
+  }
+
+  const distSq = (closestPoint.x - center.x)**2 + (closestPoint.y - center.y)**2;
+
+  return distSq <= circleRadius * circleRadius;
+}

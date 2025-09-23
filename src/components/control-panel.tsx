@@ -6,10 +6,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { GuardianAngelLogo } from './icons';
-import { Siren, Share2, XCircle, Timer, User, LogOut } from 'lucide-react';
+import { Siren, Share2, XCircle, Timer, User, LogOut, MapPin, Search } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { auth } from '@/lib/firebase/config';
+import { Input } from './ui/input';
 
 
 interface ControlPanelProps {
@@ -17,6 +18,7 @@ interface ControlPanelProps {
   isTracking: boolean;
   trackingSeconds: number;
   handleToggleTracking: () => void;
+  handleSetDestination: (address: string) => void;
 }
 
 export default function ControlPanel({
@@ -24,8 +26,10 @@ export default function ControlPanel({
   isTracking,
   trackingSeconds,
   handleToggleTracking,
+  handleSetDestination,
 }: ControlPanelProps) {
   const [sosLoading, setSosLoading] = useState(false);
+  const [destinationAddress, setDestinationAddress] = useState('');
   const { user } = useAuth();
   const router = useRouter();
 
@@ -42,6 +46,11 @@ export default function ControlPanel({
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   };
+
+  const handleDestinationSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSetDestination(destinationAddress);
+  }
 
   const handleLogout = async () => {
     await auth.signOut();
@@ -109,6 +118,22 @@ export default function ControlPanel({
               </AlertDialogContent>
             </AlertDialog>
           </div>
+        </div>
+        
+        <Separator />
+
+        <div className="space-y-3">
+          <h3 className="font-semibold text-foreground flex items-center"><MapPin className="mr-2 h-5 w-5 text-accent"/>Navigation</h3>
+            <form onSubmit={handleDestinationSubmit} className="flex gap-2">
+                <Input 
+                    placeholder="Enter destination..."
+                    value={destinationAddress}
+                    onChange={(e) => setDestinationAddress(e.target.value)}
+                />
+                <Button type="submit" size="icon" aria-label="Set Destination">
+                    <Search className="h-5 w-5"/>
+                </Button>
+            </form>
         </div>
         
         <Separator />

@@ -10,7 +10,7 @@ import ControlPanel from '@/components/control-panel';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { PanelLeft } from 'lucide-react';
-import { getDistance } from '@/lib/utils';
+import { getDistance, isLineSegmentIntersectingCircle } from '@/lib/utils';
 import dynamic from 'next/dynamic';
 
 const GuardianAngelMap = dynamic(() => import('@/components/guardian-angel-map'), { 
@@ -43,6 +43,8 @@ const VISAKHAPATNAM: LatLngExpression = [17.6868, 83.2185];
 
 export default function MapPage() {
   const [userPosition, setUserPosition] = useState<LatLngExpression | null>(null);
+  const [destination, setDestination] = useState<LatLngExpression | null>(null);
+  const [unsafeRouteSegments, setUnsafeRouteSegments] = useState<LatLngExpression[][]>([]);
   const [isTracking, setIsTracking] = useState(false);
   const [trackingSeconds, setTrackingSeconds] = useState(1800);
   const alertedZones = useRef<Set<string>>(new Set());
@@ -96,6 +98,61 @@ export default function MapPage() {
     });
   };
 
+  const handleSetDestination = async (address: string) => {
+    if (!address) return;
+    setUnsafeRouteSegments([]);
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`);
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        setDestination([parseFloat(lat), parseFloat(lon)]);
+        toast({ title: "Destination Set", description: "Calculating the safest route..." });
+      } else {
+        toast({ variant: 'destructive', title: "Address Not Found", description: "Could not find the specified location." });
+        setDestination(null);
+      }
+    } catch (error) {
+      console.error("Geocoding error:", error);
+      toast({ variant: 'destructive', title: "Geocoding Error", description: "Could not fetch location data." });
+      setDestination(null);
+    }
+  };
+
+  const handleRouteAnalysis = (routeLine: LatLngExpression[]) => {
+    const unsafeSegments: LatLngExpression[][] = [];
+    if (!routeLine || routeLine.length < 2) return;
+
+    for (let i = 0; i < routeLine.length - 1; i++) {
+        const segment: [LatLngExpression, LatLngExpression] = [routeLine[i], routeLine[i+1]];
+        let segmentIsUnsafe = false;
+        for (const zone of DANGER_ZONES) {
+            if (isLineSegmentIntersectingCircle(segment, zone.location, zone.radius)) {
+                segmentIsUnsafe = true;
+                break;
+            }
+        }
+        if (segmentIsUnsafe) {
+            unsafeSegments.push(segment);
+        }
+    }
+    
+    setUnsafeRouteSegments(unsafeSegments);
+
+    if(unsafeSegments.length > 0) {
+        toast({
+            variant: 'destructive',
+            title: '⚠️ Unsafe Route Detected',
+            description: 'Your route passes through known danger zones. Unsafe segments are highlighted on the map.'
+        })
+    } else {
+        toast({
+            title: '✅ Route is Clear',
+            description: 'No known danger zones were found along your route.'
+        })
+    }
+  };
+
   const handleSos = async () => {
     if (!userPosition) return;
     const location = { lat: userPosition[0], lng: userPosition[1] };
@@ -123,13 +180,17 @@ export default function MapPage() {
     isTracking,
     trackingSeconds,
     handleToggleTracking,
+    handleSetDestination,
   };
 
   return (
     <div className="relative h-screen w-screen">
       <GuardianAngelMap
         userPosition={userPosition}
+        destination={destination}
         dangerZones={DANGER_ZONES}
+        onRouteCalculated={handleRouteAnalysis}
+        unsafeRouteSegments={unsafeRouteSegments}
       />
       {isMobile ? (
         <Sheet>
