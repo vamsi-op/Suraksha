@@ -132,20 +132,16 @@ export default function GuardianAngelMap({ userPosition, destination, dangerZone
         lineOptions: {
             styles: [{ color: '#2563eb', opacity: 0.8, weight: 6 }]
         },
-        plan: new L.Routing.Plan([], {
-          createGeocoder: function() {
-            return {
-              geocode: function(waypoint: L.Routing.Waypoint, callback: (results: any) => void) {
-                callback([]);
-              },
-              reverse: function(location: L.LatLng, scale: number, callback: (results: any) => void) {
-                callback([]);
-              }
-            };
-          },
-           // This will prevent the default error handler from logging to the console.
-          defaultErrorHandler: function() {}
-        })
+        createGeocoder: function() {
+          return {
+            geocode: function(waypoint: L.Routing.Waypoint, callback: (results: any) => void) {
+              callback([]);
+            },
+            reverse: function(location: L.LatLng, scale: number, callback: (results: any) => void) {
+              callback([]);
+            }
+          };
+        },
       }).addTo(mapRef.current);
 
       routingControl.on('routesfound', function (e: L.Routing.RoutesFoundEvent) {
@@ -166,7 +162,7 @@ export default function GuardianAngelMap({ userPosition, destination, dangerZone
 
       routingControlRef.current = routingControl;
     }
-  }, [userPosition, destination, onRouteCalculated]);
+  }, [userPosition, destination]);
 
     // Draw unsafe route segments
     useEffect(() => {
