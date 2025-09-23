@@ -1,13 +1,17 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { GuardianAngelLogo } from './icons';
-import { Siren, Share2, XCircle, Timer, MapPin, Search } from 'lucide-react';
+import { Siren, Share2, XCircle, Timer, MapPin, Search, User, LogOut } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from './ui/input';
+import { useAuth } from '@/lib/firebase/auth-context';
+import { auth } from '@/lib/firebase/config';
+
 
 interface ControlPanelProps {
   handleSos: () => void;
@@ -26,6 +30,9 @@ export default function ControlPanel({
 }: ControlPanelProps) {
   const [sosLoading, setSosLoading] = useState(false);
   const [destinationAddress, setDestinationAddress] = useState('');
+  const { user } = useAuth();
+  const router = useRouter();
+
 
   const onSosConfirm = () => {
     setSosLoading(true);
@@ -46,16 +53,44 @@ export default function ControlPanel({
       handleSetDestination(destinationAddress.trim());
     }
   }
+  
+  const handleLogout = async () => {
+    await auth.signOut();
+    router.push('/login');
+  };
 
   return (
     <Card className="h-full w-full flex flex-col shadow-2xl">
       <CardHeader>
-        <div className="flex items-center space-x-3">
-          <GuardianAngelLogo className="h-10 w-10 text-primary" />
-          <div>
-            <CardTitle className="text-2xl font-bold text-primary">Guardian Angel</CardTitle>
-            <CardDescription>Your personal safety companion</CardDescription>
-          </div>
+        <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <GuardianAngelLogo className="h-10 w-10 text-primary" />
+              <div>
+                <CardTitle className="text-2xl font-bold text-primary">Guardian Angel</CardTitle>
+                <CardDescription>Welcome, {user?.email || 'Guest'}</CardDescription>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" onClick={() => router.push('/profile')}>
+                    <User className="h-5 w-5" />
+                </Button>
+                 <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                            <LogOut className="h-5 w-5 text-destructive" />
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleLogout}>Log Out</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </div>
         </div>
       </CardHeader>
       <CardContent className="flex-grow overflow-y-auto space-y-6">

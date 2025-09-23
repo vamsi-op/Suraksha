@@ -6,3 +6,9 @@ export type DangerZone = {
   weight: number;
   radius: number; // in meters
 };
+
+export interface EmergencyContact {
+    id: string;
+    name: string;
+    phone: string;
+}
