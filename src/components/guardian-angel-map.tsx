@@ -29,23 +29,19 @@ function MapUpdater({ position }: { position: LatLngExpression | null }) {
   const map = useMap();
   useEffect(() => {
     if (position) {
-      map.setView(position, 15);
+      map.flyTo(position, 15);
     }
   }, [position, map]);
   return null;
 }
 
 export default function GuardianAngelMap({ userPosition, dangerZones }: GuardianAngelMapProps) {
-  // Using a key that changes when userPosition becomes available forces a re-render
-  // of the MapContainer, preventing the "Map container is already initialized" error.
-  const mapKey = userPosition ? 'map-user' : 'map-loading';
 
   return (
     <div className="h-screen w-full z-10">
       <MapContainer
-        key={mapKey}
         center={userPosition || LOS_ANGELES}
-        zoom={13}
+        zoom={userPosition ? 15 : 13}
         scrollWheelZoom={true}
         style={{ height: '100%', width: '100%' }}
       >
