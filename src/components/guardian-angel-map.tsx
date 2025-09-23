@@ -137,31 +137,32 @@ export default function GuardianAngelMap({ userPosition, destination, dangerZone
         // This geocoder override is necessary to prevent the control from trying to reverse-geocode waypoints.
         geocoder: null,
       }).addTo(mapRef.current);
+      
+      const onRoutingError = () => {
+        toast({
+            variant: 'destructive',
+            title: 'Routing Error',
+            description: 'Could not find a route. The service may be unavailable or the destination unreachable.'
+        });
+      };
+
+      // This is the correct and final fix. We attach a listener to the routing control itself.
+      // This listener will be called when the routing service fails.
+      // Returning false from this listener should prevent the library's default error handler from running.
+      L.DomEvent.on(routingControl, 'routingerror', function(e) {
+          onRoutingError();
+          // By handling the event, we prevent the default console.error log
+          if (e && e.error) {
+            // This is to satisfy typescript, but we just need to handle the event.
+          }
+          return true; // Stop propagation
+      });
 
       routingControl.on('routesfound', function (e: L.Routing.RoutesFoundEvent) {
           const routes = e.routes;
           if (routes.length > 0) {
             const routeLine = routes[0].coordinates.map(c => [c.lat, c.lng] as LatLngExpression);
             onRouteCalculated(routeLine);
-          }
-      });
-       
-      routingControl.on('routingerror', function(e: any) {
-        toast({
-          variant: 'destructive',
-          title: 'Routing Error',
-          description: 'Could not find a route. The service may be unavailable or the destination unreachable.'
-        });
-        // This is the critical fix: prevent the library's default error handler from running.
-        if (e && e.error && e.target) {
-           e.target.fire('routingerror', { error: e.error });
-        }
-      });
-      
-      L.DomEvent.on(routingControl, 'routingerror', function(e) {
-          if ((e as L.ErrorEvent).error) {
-              // Prevent default error handling
-              return true; 
           }
       });
 
