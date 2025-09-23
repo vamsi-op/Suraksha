@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useEffect, useRef } from 'react';
@@ -7,6 +8,7 @@ import 'leaflet-routing-machine';
 import ReactDOMServer from 'react-dom/server';
 import { PersonStanding } from 'lucide-react';
 import type { DangerZone, LatLngExpression } from '@/lib/definitions';
+import { useToast } from '@/hooks/use-toast';
 
 // Leaflet's CSS requires this workaround in Next.js
 // @ts-ignore
@@ -57,7 +59,7 @@ export default function GuardianAngelMap({ userPosition, dangerZones, destinatio
   const userMarkerRef = useRef<L.Marker | null>(null);
   const dangerZoneLayerRef = useRef<L.LayerGroup | null>(null);
   const routingControlRef = useRef<L.Routing.Control | null>(null);
-  const safeRoutingControlRef = useRef<L.Routing.Control | null>(null);
+  const { toast } = useToast();
 
   // Initialize map
   useEffect(() => {
@@ -116,34 +118,38 @@ export default function GuardianAngelMap({ userPosition, dangerZones, destinatio
 
   // Handle routing
   useEffect(() => {
-    if (!mapRef.current || !userPosition || !destination) {
-        // Clear existing routes if no destination
+    if (!mapRef.current) return;
+
+    // Clear existing routes if no destination or user position
+    if (!userPosition || !destination) {
         if (routingControlRef.current) {
-            mapRef.current?.removeControl(routingControlRef.current);
+            mapRef.current.removeControl(routingControlRef.current);
             routingControlRef.current = null;
-        }
-        if (safeRoutingControlRef.current) {
-            mapRef.current?.removeControl(safeRoutingControlRef.current);
-            safeRoutingControlRef.current = null;
         }
         return;
     }
     
+    // Clean up previous route control
     if (routingControlRef.current) {
         mapRef.current.removeControl(routingControlRef.current);
-    }
-    if (safeRoutingControlRef.current) {
-        mapRef.current.removeControl(safeRoutingControlRef.current);
     }
 
     const waypoints = [L.latLng(userPosition), L.latLng(destination)];
     const mainRoute = createRoutingControl(waypoints, '#8764B8'); // Accent color
-    mainRoute.addTo(mapRef.current);
-    routingControlRef.current = mainRoute;
+    
+    mainRoute.on('routingerror', () => {
+        toast({
+            variant: 'destructive',
+            title: 'Routing Error',
+            description: 'Could not find a route to the destination. Please try a different location.',
+        });
+    });
 
     mainRoute.on('routesfound', function(e) {
       const routes = e.routes;
-      const summary = routes[0].summary;
+      if (!routes.length) {
+          return;
+      }
       mapRef.current?.fitBounds(L.latLngBounds(userPosition, destination), { padding: [50, 50] });
 
       const routeCoordinates = routes[0].coordinates;
@@ -161,22 +167,21 @@ export default function GuardianAngelMap({ userPosition, dangerZones, destinatio
       }
       
       if(intersectsDangerZone) {
-        console.log("Route intersects with a danger zone. Calculating a safer route is not yet implemented.");
         // This is where you would calculate an alternative "safe" route.
-        // For this MVP, we will just highlight the dangerous route.
-        // In a full implementation, you'd use a different routing query avoiding the zones.
+        // For now, we will just highlight the dangerous route.
         if (routingControlRef.current) {
-          routingControlRef.current.getPlan().setWaypoints(waypoints);
-          (routingControlRef.current.getRouter() as any)._line.setStyle({ color: 'red' });
+            const router = routingControlRef.current.getRouter() as any;
+            if(router && router._line) {
+                router._line.setStyle({ color: 'red' });
+            }
         }
-        
-        // As a placeholder for a "safe" route, let's draw another line.
-        // This is a complex problem, so we'll simulate.
-        // For now, we just indicate the main route is unsafe.
       }
     });
 
-  }, [userPosition, destination, dangerZones]);
+    mainRoute.addTo(mapRef.current);
+    routingControlRef.current = mainRoute;
+
+  }, [userPosition, destination, dangerZones, toast]);
 
   return <div ref={mapContainerRef} className="h-screen w-full z-10" />;
 }
