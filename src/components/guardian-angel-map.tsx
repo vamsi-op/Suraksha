@@ -130,18 +130,10 @@ export default function GuardianAngelMap({ userPosition, destination, dangerZone
         show: false, // Hides the itinerary panel
         addWaypoints: false, // Prevents users from adding more waypoints
         lineOptions: {
-            styles: [{ color: '#2563eb', opacity: 0.8, weight: 6 }]
+            styles: [{ color: '#2673e0', opacity: 0.8, weight: 6 }]
         },
-        createGeocoder: function() {
-          return {
-            geocode: function(waypoint: L.Routing.Waypoint, callback: (results: any) => void) {
-              callback([]);
-            },
-            reverse: function(location: L.LatLng, scale: number, callback: (results: any) => void) {
-              callback([]);
-            }
-          };
-        },
+        // This geocoder override is necessary to prevent the control from trying to reverse-geocode waypoints.
+        geocoder: null,
       }).addTo(mapRef.current);
 
       routingControl.on('routesfound', function (e: L.Routing.RoutesFoundEvent) {
@@ -153,16 +145,18 @@ export default function GuardianAngelMap({ userPosition, destination, dangerZone
       });
        
       routingControl.on('routingerror', function() {
+        // THIS IS THE FIX: We handle the error gracefully with a toast
+        // and do NOT re-throw or console.error it, which prevents the error overlay.
         toast({
           variant: 'destructive',
           title: 'Routing Error',
-          description: 'Could not find a route to the destination. The location may be unreachable by road.'
+          description: 'Could not find a route. The service may be unavailable or the destination unreachable.'
         });
       });
 
       routingControlRef.current = routingControl;
     }
-  }, [userPosition, destination]);
+  }, [userPosition, destination, onRouteCalculated, toast]);
 
     // Draw unsafe route segments
     useEffect(() => {
