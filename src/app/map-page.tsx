@@ -20,15 +20,22 @@ const GuardianAngelMap = dynamic(() => import('@/components/guardian-angel-map')
 
 
 const DANGER_ZONES: DangerZone[] = [
-  // High-risk (Red) zones - fewer and more critical
+  // Visakhapatnam Zones
   { id: 'zone3', location: [17.7126, 83.2982], weight: 90, radius: 400, level: 'high' },  // Jagadamba Centre
   { id: 'zone1', location: [17.7247, 83.3005], weight: 80, radius: 500, level: 'high' }, // RTC Complex area
-
-  // Moderate-risk (Yellow) zones - more widespread
   { id: 'zone2', location: [17.6750, 83.2010], weight: 70, radius: 800, level: 'moderate' }, // Gajuwaka
   { id: 'zone4', location: [17.7180, 83.3240], weight: 65, radius: 700, level: 'moderate' }, // Beach Road area
   { id: 'zone5', location: [17.7386, 83.3184], weight: 60, radius: 600, level: 'moderate' }, // MVP Colony
   { id: 'zone6', location: [17.7050, 83.2800], weight: 50, radius: 900, level: 'moderate' }, // Old Town / Port Area
+  
+  // Tagarapuvalasa Zones
+  { id: 'zone7', location: [17.9175, 83.4350], weight: 60, radius: 700, level: 'moderate' }, // Tagarapuvalasa Market Area
+  { id: 'zone8', location: [17.9100, 83.4400], weight: 55, radius: 800, level: 'moderate' }, // Chittivalasa Jute Mill road
+  
+  // Vizianagaram Zones
+  { id: 'zone9', location: [18.1126, 83.3980], weight: 85, radius: 500, level: 'high' }, // Vizianagaram Railway Station Area
+  { id: 'zone10', location: [18.1160, 83.4100], weight: 70, radius: 600, level: 'moderate' }, // Vizianagaram Fort Area
+  { id: 'zone11', location: [18.1050, 83.4000], weight: 65, radius: 900, level: 'moderate' }, // Main RTC Complex, Vizianagaram
 ];
 
 const PROXIMITY_THRESHOLD_METERS = 200;
