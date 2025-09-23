@@ -40,8 +40,8 @@ export default function GuardianAngelMap({ userPosition, dangerZones }: Guardian
   return (
     <div className="h-screen w-full z-10">
       <MapContainer
-        center={userPosition || LOS_ANGELES}
-        zoom={userPosition ? 15 : 13}
+        center={LOS_ANGELES}
+        zoom={13}
         scrollWheelZoom={true}
         style={{ height: '100%', width: '100%' }}
       >
