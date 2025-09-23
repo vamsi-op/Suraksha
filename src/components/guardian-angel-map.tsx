@@ -5,8 +5,6 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-routing-machine';
 import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
-// Import GraphHopper support
-import 'leaflet-routing-machine/dist/leaflet-routing-machine.graphhopper.js';
 
 import ReactDOMServer from 'react-dom/server';
 import { PersonStanding } from 'lucide-react';
