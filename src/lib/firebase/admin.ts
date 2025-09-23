@@ -3,7 +3,7 @@ import admin from 'firebase-admin';
 // This file should only be imported on the server.
 
 const firebaseConfig = {
-  "projectId": "studio-9073256923-aa22b",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
 };
 
 if (!admin.apps.length) {
