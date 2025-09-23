@@ -20,14 +20,14 @@ const GuardianAngelMap = dynamic(() => import('@/components/guardian-angel-map')
 
 
 const DANGER_ZONES: DangerZone[] = [
-  { id: 'zone1', location: [34.052235, -118.243683], weight: 50, radius: 1000 },
-  { id: 'zone2', location: [34.02235, -118.285118], weight: 80, radius: 1500 },
-  { id: 'zone3', location: [33.941589, -118.408531], weight: 30, radius: 1200 },
-  { id: 'zone4', location: [34.0736, -118.399], weight: 65, radius: 800 },
+  { id: 'zone1', location: [28.6330, 77.2195], weight: 70, radius: 1000 }, // Connaught Place area
+  { id: 'zone2', location: [28.6428, 77.2219], weight: 90, radius: 1200 }, // Near New Delhi Railway Station
+  { id: 'zone3', location: [28.6518, 77.1910], weight: 60, radius: 1500 }, // Karol Bagh
+  { id: 'zone4', location: [28.6423, 77.2131], weight: 85, radius: 800 },   // Paharganj
 ];
 
 const PROXIMITY_THRESHOLD_METERS = 500;
-const LOS_ANGELES: LatLngExpression = [34.0549, -118.2426];
+const NEW_DELHI: LatLngExpression = [28.6139, 77.2090];
 
 export default function MapPage() {
   const [userPosition, setUserPosition] = useState<LatLngExpression | null>(null);
@@ -46,8 +46,8 @@ export default function MapPage() {
         checkProximity(pos);
       },
       () => {
-        console.warn('Geolocation permission denied. Defaulting to Los Angeles.');
-        setUserPosition(LOS_ANGELES);
+        console.warn('Geolocation permission denied. Defaulting to New Delhi.');
+        setUserPosition(NEW_DELHI);
       },
       { enableHighAccuracy: true }
     );

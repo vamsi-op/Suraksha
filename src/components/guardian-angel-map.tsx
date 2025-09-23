@@ -23,7 +23,7 @@ interface GuardianAngelMapProps {
   destination: LatLngExpression | null;
 }
 
-const LOS_ANGELES: LatLngExpression = [34.0549, -118.2426];
+const NEW_DELHI: LatLngExpression = [28.6139, 77.2090];
 
 const UserMarkerIcon = L.divIcon({
   html: ReactDOMServer.renderToString(
@@ -63,7 +63,7 @@ export default function GuardianAngelMap({ userPosition, dangerZones, destinatio
   useEffect(() => {
     if (mapRef.current || !mapContainerRef.current) return;
 
-    mapRef.current = L.map(mapContainerRef.current).setView(LOS_ANGELES, 13);
+    mapRef.current = L.map(mapContainerRef.current).setView(NEW_DELHI, 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
