@@ -1,0 +1,241 @@
+diff --git a/node_modules/leaflet-routing-machine/dist/leaflet-routing-machine.graphhopper.js b/node_modules/leaflet-routing-machine/dist/leaflet-routing-machine.graphhopper.js
+new file mode 100644
+index 0000000..881d384
+--- /dev/null
++++ b/node_modules/leaflet-routing-machine/dist/leaflet-routing-machine.graphhopper.js
+@@ -0,0 +1,180 @@
++(function() {
++  'use strict';
++
++  L.Routing = L.Routing || {};
++
++  L.Routing.GraphHopper = L.Class.extend({
++    options: {
++      serviceUrl: 'https://graphhopper.com/api/1/route',
++      timeout: 30 * 1000,
++      urlParameters: {}
++    },
++
++    initialize: function(apiKey, options) {
++      this._apiKey = apiKey;
++      L.Util.setOptions(this, options);
++    },
++
++    route: function(waypoints, callback, context, options) {
++      var timedOut = false,
++        wps = [],
++        url,
++        timer,
++        wp,
++        i;
++
++      options = options || {};
++      url = this.buildRouteUrl(waypoints, options);
++
++      timer = setTimeout(function() {
++        timedOut = true;
++        callback.call(context || callback, {
++          status: -1,
++          message: 'GraphHopper request timed out.'
++        });
++      }, this.options.timeout);
++
++      for (i = 0; i < waypoints.length; i++) {
++        wp = waypoints[i];
++        wps.push({
++          latLng: wp.latLng,
++          name: wp.name,
++          options: wp.options
++        });
++      }
++
++      L.Routing.JSONP(url, L.Util.extend({
++        key: this._apiKey
++      }, this.options.urlParameters), function(data) {
++        clearTimeout(timer);
++        if (!timedOut) {
++          var err = data.message ? {
++            status: -1,
++            message: data.message
++          } : null
++          if (!err) {
++            this._routeDone(data, wps, callback, context);
++          } else {
++            callback.call(context || callback, err);
++          }
++        }
++      }, this);
++
++      return this;
++    },
++
++    _routeDone: function(response, inputWaypoints, callback, context) {
++      var alts = [],
++          path,
++          i;
++
++      context = context || callback;
++      if (!response.paths) {
++        callback.call(context, {
++          status: -1,
++          message: 'No paths found.'
++        });
++        return;
++      }
++
++      for (i = 0; i < response.paths.length; i++) {
++        path = response.paths[i];
++        alts.push(this._convertPath(path, inputWaypoints));
++      }
++
++      callback.call(context, null, alts);
++    },
++
++    _convertPath: function(path, inputWaypoints) {
++      var i,
++        j,
++        leg,
++        steps,
++        step,
++        start,
++        end,
++        instruction,
++        result = {
++          name: '',
++          coordinates: [],
++          instructions: [],
++          summary: {
++            totalDistance: path.distance,
++            totalTime: path.time / 1000
++          },
++          inputWaypoints: inputWaypoints,
++          waypoints: []
++        };
++
++      for (i = 0; i < path.instructions.length; i++) {
++        instruction = path.instructions[i];
++        result.coordinates.push.apply(result.coordinates, this._decode(instruction.points));
++        result.instructions.push({
++          type: this._getInstructionType(instruction.sign, i === 0),
++          text: instruction.text,
++          distance: instruction.distance,
++          time: instruction.time / 1000,
++          index: result.coordinates.length - instruction.points.length,
++          exit: instruction.exit_number
++        });
++      }
++
++      result.waypoints = this._getWaypoints(path.instructions, result.coordinates);
++
++      return result;
++    },
++
++    _getWaypoints: function(instructions, coordinates) {
++      var wps = [],
++          instruction,
++          i;
++      for (i = 0; i < instructions.length; i++) {
++        instruction = instructions[i];
++        if (instruction.sign === 4 || instruction.sign === 5) { // waypoint reached or destination reached
++          wps.push(coordinates[instruction.interval[0]]);
++        }
++      }
++
++      return wps;
++    },
++
++    buildRouteUrl: function(waypoints, options) {
++      var locs = [],
++        i;
++      for (i = 0; i < waypoints.length; i++) {
++        locs.push('point=' + waypoints[i].latLng.lat + ',' + waypoints[i].latLng.lng);
++      }
++
++      return this.options.serviceUrl + '?' +
++        locs.join('&') +
++        L.Util.getParamString(options, this.options.serviceUrl);
++    },
++
++    _getInstructionType: function(sign, start) {
++      switch (sign) {
++      case 0: return 'Straight';
++      case 1: return 'SlightRight';
++      case 2: return 'Right';
++      case 3: return 'SharpRight';
++      case 4: return start ? 'DestinationReached' : 'WaypointReached';
++      case 5: return 'DestinationReached';
++      case -1: return 'SlightLeft';
++      case -2: return 'Left';
++      case -3: return 'SharpLeft';
++      case 6: return 'Roundabout';
++      }
++    },
++
++    _decode: function(encoded) {
++      // Decode an encoded polyline
++      // see https://developers.google.com/maps/documentation/utilities/polylinealgorithm
++      var len = encoded.length;
++      var index = 0;
++      var lat = 0;
++      var lng = 0;
++      var array = [];
++
++      while (index < len) {
++        var b;
++        var shift = 0;
++        var result = 0;
++        do {
++          b = encoded.charCodeAt(index++) - 63;
++          result |= (b & 0x1f) << shift;
++          shift += 5;
++        } while (b >= 0x20);
++        var dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
++        lat += dlat;
++
++        shift = 0;
++        result = 0;
++        do {
++          b = encoded.charCodeAt(index++) - 63;
++          result |= (b & 0x1f) << shift;
++          shift += 5;
++        } while (b >= 0x20);
++        var dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
++        lng += dlng;
++
++        array.push(L.latLng(lat * 1e-5, lng * 1e-5));
++      }
++      return array;
++    }
++  });
++
++  L.Routing.graphHopper = function(apiKey, options) {
++    return new L.Routing.GraphHopper(apiKey, options);
++  };
++
++  if (typeof module !== 'undefined') {
++    module.exports = L.Routing.GraphHopper;
++  }
++})();
+diff --git a/node_modules/leaflet-routing-machine/package.json b/node_modules/leaflet-routing-machine/package.json
+index 3a96860..3e56a7c 100644
+--- a/node_modules/leaflet-routing-machine/package.json
++++ b/node_modules/leaflet-routing-machine/package.json
+@@ -2,12 +2,15 @@
+   "name": "leaflet-routing-machine",
+   "version": "3.2.12",
+   "description": "Routing for Leaflet.",
+-  "main": "dist/leaflet-routing-machine.js",
+-  "style": "dist/leaflet-routing-machine.css",
++  "main": "dist/leaflet-routing-machine.cjs.js",
+   "module": "dist/leaflet-routing-machine.mjs",
++  "style": "dist/leaflet-routing-machine.css",
+   "types": "dist/leaflet-routing-machine.d.ts",
+   "homepage": "https://www.liedman.net/leaflet-routing-machine/",
+-  "exports": "./dist/leaflet-routing-machine.mjs",
++  "exports": {
++    ".": "./dist/leaflet-routing-machine.mjs",
++    "./dist/leaflet-routing-machine.graphhopper.js": "./dist/leaflet-routing-machine.graphhopper.js"
++  },
+   "files": [
+     "dist"
+   ],

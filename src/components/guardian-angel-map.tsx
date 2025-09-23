@@ -94,7 +94,7 @@ export default function GuardianAngelMap({
     if (!destination) {
       mapRef.current.flyTo(userPosition, 15);
     }
-  }, [userPosition]);
+  }, [userPosition, destination]);
 
   // Danger zones
   useEffect(() => {
@@ -116,7 +116,7 @@ export default function GuardianAngelMap({
     });
   }, [dangerZones]);
 
-  // Routing with GraphHopper
+  // Routing
   useEffect(() => {
     if (!mapRef.current || !userPosition) return;
 
@@ -129,18 +129,11 @@ export default function GuardianAngelMap({
       const [userLat, userLng] = userPosition as [number, number];
       const [destLat, destLng] = destination as [number, number];
 
-      // @ts-ignore
-      const graphHopperRouter = L.Routing.graphHopper(
-        "af3033f0-e0ee-43fe-b8d9-67aef2b6b707", 
-        { urlParameters: { vehicle: "car" } }
-      );
-
       const routingControl = L.Routing.control({
         waypoints: [
           L.latLng(userLat, userLng),
           L.latLng(destLat, destLng),
         ],
-        router: graphHopperRouter,
         routeWhileDragging: true,
         show: false,
         addWaypoints: false,
@@ -149,11 +142,7 @@ export default function GuardianAngelMap({
         },
         createMarker: () => null,
       }).addTo(mapRef.current);
-
-      routingControl.on('routingerror', (e) => {
-        console.warn("GraphHopper routing failed:", e);
-      });
-
+      
       routingControlRef.current = routingControl;
     }
   }, [userPosition, destination]);
