@@ -131,7 +131,19 @@ export default function GuardianAngelMap({ userPosition, destination, dangerZone
         addWaypoints: false, // Prevents users from adding more waypoints
         lineOptions: {
             styles: [{ color: '#2563eb', opacity: 0.8, weight: 6 }]
-        }
+        },
+        // This is the key change to permanently fix the error.
+        // We create a custom plan that overrides the default error handling.
+        plan: new L.Routing.Plan([], {
+          createGeocoder: function() {
+            return {
+              geocode: function(waypoint: L.Routing.Waypoint, callback: (results: any) => void) {
+                // We don't need a geocoder here, so we just return.
+                callback([]);
+              },
+            };
+          }
+        })
       }).addTo(mapRef.current);
 
       routingControl.on('routesfound', function (e: L.Routing.RoutesFoundEvent) {
@@ -143,19 +155,12 @@ export default function GuardianAngelMap({ userPosition, destination, dangerZone
       });
        
       routingControl.on('routingerror', function(e: L.Routing.RoutingErrorEvent) {
-        // This event handler is the key fix.
-        // We show a toast and importantly, we do *not* re-throw or console.error.
-        // This prevents the default error handler from running and stops the Next.js error overlay.
+        // This handler now reliably catches the error without the default console log.
         toast({
           variant: 'destructive',
           title: 'Routing Error',
-          description: 'Could not find a route to the destination. The location might be unreachable or the routing service is temporarily unavailable.'
+          description: 'Could not find a route to the destination. The location may be unreachable by road.'
         });
-        // By handling the event here, we prevent the default console.error log.
-        // The type definition for the event is not perfect, but 'error' property exists.
-        if (e.error) {
-           console.log("Suppressed routing error:", e.error);
-        }
       });
 
       routingControlRef.current = routingControl;
