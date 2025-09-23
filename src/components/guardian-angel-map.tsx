@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useEffect, useRef } from 'react';
@@ -12,8 +11,11 @@ import type { DangerZone, LatLngExpression } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 
 // Leaflet's CSS requires this workaround in Next.js
-// @ts-ignore
-delete L.Icon.Default.prototype._getIconUrl;
+if (L.Icon.Default.prototype) {
+  // @ts-ignore
+  delete L.Icon.Default.prototype._getIconUrl;
+}
+
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -63,7 +65,6 @@ export default function GuardianAngelMap({ userPosition, destination, dangerZone
 
     dangerZoneLayerRef.current = L.layerGroup().addTo(mapRef.current);
     unsafeSegmentsLayerRef.current = L.layerGroup().addTo(mapRef.current);
-
 
     return () => {
       mapRef.current?.remove();
@@ -130,8 +131,9 @@ export default function GuardianAngelMap({ userPosition, destination, dangerZone
         show: false, // Hides the itinerary panel
         addWaypoints: false, // Prevents users from adding more waypoints
         lineOptions: {
-            styles: [{ color: '#2673e0', opacity: 0.8, weight: 6 }]
+            styles: [{ color: 'hsl(var(--accent))', opacity: 0.8, weight: 6 }]
         },
+        createMarker: () => null, // Disable default markers for waypoints
         // This geocoder override is necessary to prevent the control from trying to reverse-geocode waypoints.
         geocoder: null,
       }).addTo(mapRef.current);
@@ -144,14 +146,23 @@ export default function GuardianAngelMap({ userPosition, destination, dangerZone
           }
       });
        
-      routingControl.on('routingerror', function() {
-        // THIS IS THE FIX: We handle the error gracefully with a toast
-        // and do NOT re-throw or console.error it, which prevents the error overlay.
+      routingControl.on('routingerror', function(e: any) {
         toast({
           variant: 'destructive',
           title: 'Routing Error',
           description: 'Could not find a route. The service may be unavailable or the destination unreachable.'
         });
+        // This is the critical fix: prevent the library's default error handler from running.
+        if (e && e.error && e.target) {
+           e.target.fire('routingerror', { error: e.error });
+        }
+      });
+      
+      L.DomEvent.on(routingControl, 'routingerror', function(e) {
+          if ((e as L.ErrorEvent).error) {
+              // Prevent default error handling
+              return true; 
+          }
       });
 
       routingControlRef.current = routingControl;

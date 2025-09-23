@@ -9,13 +9,13 @@ import { triggerSOS } from '@/lib/actions';
 import ControlPanel from '@/components/control-panel';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { PanelLeft } from 'lucide-react';
+import { PanelLeft, Loader2 } from 'lucide-react';
 import { getDistance, isLineSegmentIntersectingCircle } from '@/lib/utils';
 import dynamic from 'next/dynamic';
 
 const GuardianAngelMap = dynamic(() => import('@/components/guardian-angel-map'), { 
   ssr: false,
-  loading: () => <div className="h-screen w-screen bg-muted flex items-center justify-center"><p>Loading map...</p></div>
+  loading: () => <div className="h-screen w-screen bg-muted flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
 });
 
 
@@ -59,14 +59,18 @@ export default function MapPage() {
         checkProximity(pos);
       },
       () => {
-        console.warn('Geolocation permission denied. Defaulting to Visakhapatnam.');
+        toast({
+          variant: 'destructive',
+          title: 'Location Error',
+          description: 'Could not get your location. Please enable location services. Defaulting to Visakhapatnam.',
+        });
         setUserPosition(VISAKHAPATNAM);
       },
       { enableHighAccuracy: true }
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -74,7 +78,7 @@ export default function MapPage() {
       interval = setInterval(() => {
         setTrackingSeconds((prev) => prev - 1);
       }, 1000);
-    } else if (trackingSeconds === 0) {
+    } else if (isTracking && trackingSeconds === 0) {
       setIsTracking(false);
       toast({ title: 'Location Sharing Ended', description: 'Your location is no longer being shared.' });
     }
@@ -99,10 +103,16 @@ export default function MapPage() {
   };
 
   const handleSetDestination = async (address: string) => {
-    if (!address) return;
-    setUnsafeRouteSegments([]);
+    if (!address) {
+      setDestination(null);
+      setUnsafeRouteSegments([]);
+      return;
+    }
+
     try {
       const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`);
+      if (!response.ok) throw new Error('Geocoding service failed');
+      
       const data = await response.json();
       if (data && data.length > 0) {
         const { lat, lon } = data[0];
@@ -154,7 +164,10 @@ export default function MapPage() {
   };
 
   const handleSos = async () => {
-    if (!userPosition) return;
+    if (!userPosition) {
+        toast({ variant: 'destructive', title: 'Cannot send SOS', description: 'Your location is not available.' });
+        return;
+    }
     const location = { lat: userPosition[0], lng: userPosition[1] };
     await triggerSOS(location);
     toast({
@@ -195,16 +208,16 @@ export default function MapPage() {
       {isMobile ? (
         <Sheet>
           <SheetTrigger asChild>
-            <Button size="icon" className="absolute top-4 left-4 z-20 shadow-lg">
+            <Button size="icon" className="absolute top-4 left-4 z-[1000] shadow-lg">
               <PanelLeft className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-[320px] p-0 z-30">
+          <SheetContent side="left" className="w-[320px] p-0 z-[1001]">
             <ControlPanel {...controlPanelProps} />
           </SheetContent>
         </Sheet>
       ) : (
-        <div className="absolute top-0 right-0 h-full w-[400px] z-20 p-4">
+        <div className="absolute top-0 right-0 h-full w-[400px] z-[1000] p-4">
           <ControlPanel {...controlPanelProps} />
         </div>
       )}
