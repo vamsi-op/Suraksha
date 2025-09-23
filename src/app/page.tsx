@@ -1,3 +1,9 @@
+import MapPage from "./map-page";
+
 export default function Home() {
-  return <></>;
+  return (
+    <main>
+      <MapPage />
+    </main>
+  );
 }
