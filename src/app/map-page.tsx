@@ -43,7 +43,6 @@ const VISAKHAPATNAM: LatLngExpression = [17.6868, 83.2185];
 
 export default function MapPage() {
   const [userPosition, setUserPosition] = useState<LatLngExpression | null>(null);
-  const [destination, setDestination] = useState<LatLngExpression | null>(null);
   const [isTracking, setIsTracking] = useState(false);
   const [trackingSeconds, setTrackingSeconds] = useState(1800);
   const alertedZones = useRef<Set<string>>(new Set());
@@ -119,34 +118,11 @@ export default function MapPage() {
     }
   }
 
-  const handleSetDestination = async (address: string) => {
-    try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`);
-      if (!response.ok) {
-        throw new Error('Geocoding service failed.');
-      }
-      const data = await response.json();
-      
-      if (data && data.length > 0 && data[0].lat && data[0].lon) {
-        const { lat, lon, display_name } = data[0];
-        const newDestination: LatLngExpression = [parseFloat(lat), parseFloat(lon)];
-        setDestination(newDestination);
-        toast({ title: 'Destination Set', description: `Route planned to ${display_name}` });
-      } else {
-        toast({ variant: 'destructive', title: 'Address Not Found', description: 'Could not find coordinates for the address. Please try a different one.' });
-      }
-    } catch (error) {
-      console.error('Error setting destination:', error);
-      toast({ variant: 'destructive', title: 'Routing Error', description: 'Could not set destination. Please check the address or try again later.' });
-    }
-  };
-
   const controlPanelProps = {
     handleSos,
     isTracking,
     trackingSeconds,
     handleToggleTracking,
-    handleSetDestination,
   };
 
   return (
@@ -154,7 +130,6 @@ export default function MapPage() {
       <GuardianAngelMap
         userPosition={userPosition}
         dangerZones={DANGER_ZONES}
-        destination={destination}
       />
       {isMobile ? (
         <Sheet>

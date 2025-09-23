@@ -4,11 +4,9 @@
 import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import 'leaflet-routing-machine';
 import ReactDOMServer from 'react-dom/server';
 import { PersonStanding } from 'lucide-react';
 import type { DangerZone, LatLngExpression } from '@/lib/definitions';
-import { useToast } from '@/hooks/use-toast';
 
 // Leaflet's CSS requires this workaround in Next.js
 // @ts-ignore
@@ -22,7 +20,6 @@ L.Icon.Default.mergeOptions({
 interface GuardianAngelMapProps {
   userPosition: LatLngExpression | null;
   dangerZones: DangerZone[];
-  destination: LatLngExpression | null;
 }
 
 const VISAKHAPATNAM: LatLngExpression = [17.6868, 83.2185];
@@ -38,28 +35,12 @@ const UserMarkerIcon = L.divIcon({
   iconAnchor: [20, 20],
 });
 
-const createRoutingControl = (waypoints: L.LatLng[], color: string) => {
-    return L.Routing.control({
-        waypoints,
-        routeWhileDragging: true,
-        show: false, // Hide the default instructions panel
-        addWaypoints: false, // Prevent adding waypoints by clicking
-        lineOptions: {
-            styles: [{ color, weight: 6, opacity: 0.8 }],
-            extendToWaypoints: true,
-            missingRouteTolerance: 100,
-        },
-        createMarker: () => null, // Hide start/end markers
-    });
-};
 
-export default function GuardianAngelMap({ userPosition, dangerZones, destination }: GuardianAngelMapProps) {
+export default function GuardianAngelMap({ userPosition, dangerZones }: GuardianAngelMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const dangerZoneLayerRef = useRef<L.LayerGroup | null>(null);
-  const routingControlRef = useRef<L.Routing.Control | null>(null);
-  const { toast } = useToast();
 
   // Initialize map
   useEffect(() => {
@@ -89,12 +70,9 @@ export default function GuardianAngelMap({ userPosition, dangerZones, destinatio
       } else {
         userMarkerRef.current.setLatLng(userPosition);
       }
-      // Only fly to position if there is no destination set
-      if(!destination) {
-        mapRef.current.flyTo(userPosition, 15);
-      }
+      mapRef.current.flyTo(userPosition, 15);
     }
-  }, [userPosition, destination]);
+  }, [userPosition]);
   
   // Update danger zones
   useEffect(() => {
@@ -115,81 +93,6 @@ export default function GuardianAngelMap({ userPosition, dangerZones, destinatio
       }).addTo(layerGroup);
     });
   }, [dangerZones]);
-
-  // Handle routing
-  useEffect(() => {
-    if (!mapRef.current) return;
-
-    // Clear existing routes if no destination or user position
-    if (!userPosition || !destination) {
-        if (routingControlRef.current) {
-            mapRef.current.removeControl(routingControlRef.current);
-            routingControlRef.current = null;
-        }
-        return;
-    }
-    
-    // Clean up previous route control
-    if (routingControlRef.current) {
-        mapRef.current.removeControl(routingControlRef.current);
-    }
-
-    const waypoints = [L.latLng(userPosition), L.latLng(destination)];
-    const mainRoute = createRoutingControl(waypoints, 'hsl(var(--accent))');
-    
-    mainRoute.on('routingerror', () => {
-        toast({
-            variant: 'destructive',
-            title: 'Routing Error',
-            description: 'Could not find a route. The routing service may be unavailable or the area may be unroutable.',
-        });
-        if (routingControlRef.current) {
-            mapRef.current?.removeControl(routingControlRef.current);
-            routingControlRef.current = null;
-        }
-    });
-
-    mainRoute.on('routesfound', function(e) {
-      const routes = e.routes;
-      if (!routes.length) {
-          return;
-      }
-      mapRef.current?.fitBounds(L.latLngBounds(userPosition, destination), { padding: [50, 50] });
-
-      const routeCoordinates = routes[0].coordinates;
-      let intersectsDangerZone = false;
-      
-      for(const coord of routeCoordinates) {
-        for(const zone of dangerZones) {
-          const distance = L.latLng(zone.location).distanceTo(coord);
-          if(distance < zone.radius) {
-            intersectsDangerZone = true;
-            break;
-          }
-        }
-        if(intersectsDangerZone) break;
-      }
-      
-      if(intersectsDangerZone) {
-        toast({
-            variant: 'destructive',
-            title: 'Route Warning',
-            description: 'Your planned route passes through a potentially unsafe area. Please be cautious.',
-            duration: 8000,
-        });
-        if (routingControlRef.current) {
-            const router = routingControlRef.current.getRouter() as any;
-            if(router && router._line) {
-                router._line.setStyle({ color: 'red' });
-            }
-        }
-      }
-    });
-
-    mainRoute.addTo(mapRef.current);
-    routingControlRef.current = mainRoute;
-
-  }, [userPosition, destination, dangerZones, toast]);
 
   return <div ref={mapContainerRef} className="h-screen w-full z-10" />;
 }
