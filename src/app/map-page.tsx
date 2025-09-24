@@ -19,7 +19,7 @@ const GuardianAngelMap = dynamic(() => import('@/components/guardian-angel-map')
 });
 
 
-const DANGER_ZONES: DangerZone[] = [
+const INITIAL_DANGER_ZONES: DangerZone[] = [
   // Visakhapatnam Zones
   { id: 'zone3', location: [17.7126, 83.2982], weight: 90, radius: 400, level: 'high' },  // Jagadamba Centre
   { id: 'zone1', location: [17.7247, 83.3005], weight: 80, radius: 500, level: 'high' }, // RTC Complex area
@@ -47,6 +47,7 @@ export default function MapPage() {
   const [isTracking, setIsTracking] = useState(false);
   const [trackingSeconds, setTrackingSeconds] = useState(1800);
   const [routeCoordinates, setRouteCoordinates] = useState<LatLngExpression[]>([]);
+  const [dangerZones, setDangerZones] = useState<DangerZone[]>(INITIAL_DANGER_ZONES);
   const alertedZones = useRef<Set<string>>(new Set());
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -87,7 +88,7 @@ export default function MapPage() {
   }, [isTracking, trackingSeconds, toast]);
 
   const checkProximity = (position: LatLngExpression) => {
-    DANGER_ZONES.forEach((zone) => {
+    dangerZones.forEach((zone) => {
       if (alertedZones.current.has(zone.id)) return;
 
       const distance = getDistance(position, zone.location);
@@ -110,7 +111,7 @@ export default function MapPage() {
 
     for (let i = 0; i < routeCoords.length - 1; i++) {
       const segment: [LatLngExpression, LatLngExpression] = [routeCoords[i], routeCoords[i + 1]];
-      for (const zone of DANGER_ZONES) {
+      for (const zone of dangerZones) {
         if (isLineSegmentIntersectingCircle(segment, zone.location, zone.radius)) {
           intersectingZones.add(zone);
         }
@@ -140,34 +141,11 @@ export default function MapPage() {
     }
   };
 
-
-  const handleSetDestination = async (address: string) => {
-    if (!address) {
-      setDestination(null);
-      setRouteCoordinates([]);
-      return;
-    }
-
-    try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`);
-      if (!response.ok) throw new Error('Geocoding service failed');
-      
-      const data = await response.json();
-      if (data && data.length > 0) {
-        const { lat, lon } = data[0];
-        setDestination([parseFloat(lat), parseFloat(lon)]);
-        toast({ title: "Destination Set", description: "Calculating safest route..." });
-      } else {
-        toast({ variant: 'destructive', title: "Address Not Found", description: "Could not find the specified location." });
-        setDestination(null);
-        setRouteCoordinates([]);
-      }
-    } catch (error) {
-      console.error("Geocoding error:", error);
-      toast({ variant: 'destructive', title: "Geocoding Error", description: "Could not fetch location data." });
-      setDestination(null);
-      setRouteCoordinates([]);
-    }
+  const handleSetDestination = (address: string) => {
+    toast({
+      title: 'Feature Under Development',
+      description: 'The route planning feature is not yet implemented.',
+    });
   };
 
   const handleSos = async () => {
@@ -189,6 +167,36 @@ export default function MapPage() {
     }
   }
 
+  const handleReportActivity = () => {
+    if (!userPosition) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot Report Activity',
+        description: 'Your location is not available. Please enable location services.',
+      });
+      return;
+    }
+
+    if (!isTracking) {
+      handleToggleTracking(); // Start tracking if not already
+    }
+
+    const newZone: DangerZone = {
+      id: `reported-${new Date().getTime()}`,
+      location: userPosition,
+      radius: 500, // 500 meter radius for reported zones
+      weight: 60, // Moderate risk
+      level: 'moderate',
+    };
+
+    setDangerZones(prevZones => [...prevZones, newZone]);
+
+    toast({
+      title: 'Activity Reported',
+      description: 'Thank you for your report. The area has been marked and your location sharing is active.',
+    });
+  };
+
   const handleRouteFound = (coords: LatLngExpression[]) => {
     setRouteCoordinates(coords);
     checkRouteAgainstDangerZones(coords);
@@ -200,6 +208,7 @@ export default function MapPage() {
     trackingSeconds,
     handleToggleTracking,
     handleSetDestination,
+    handleReportActivity,
   };
 
   return (
@@ -207,7 +216,7 @@ export default function MapPage() {
       <GuardianAngelMap
         userPosition={userPosition}
         destination={destination}
-        dangerZones={DANGER_ZONES}
+        dangerZones={dangerZones}
         onRouteFound={handleRouteFound}
       />
       {isMobile ? (

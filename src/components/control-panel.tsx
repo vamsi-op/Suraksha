@@ -6,11 +6,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { SurakshaLogo } from './icons';
-import { Siren, Share2, XCircle, Timer, User, LogOut, MapPin, Search } from 'lucide-react';
+import { Siren, Share2, XCircle, Timer, User, LogOut, MapPin, Search, ShieldAlert } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { auth } from '@/lib/firebase/config';
 import { Input } from './ui/input';
+import { useToast } from '@/hooks/use-toast';
 
 
 interface ControlPanelProps {
@@ -19,6 +20,7 @@ interface ControlPanelProps {
   trackingSeconds: number;
   handleToggleTracking: () => void;
   handleSetDestination: (address: string) => void;
+  handleReportActivity: () => void;
 }
 
 export default function ControlPanel({
@@ -27,11 +29,13 @@ export default function ControlPanel({
   trackingSeconds,
   handleToggleTracking,
   handleSetDestination,
+  handleReportActivity,
 }: ControlPanelProps) {
   const [sosLoading, setSosLoading] = useState(false);
   const [destinationAddress, setDestinationAddress] = useState('');
   const { user } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
 
   const onSosConfirm = () => {
@@ -49,7 +53,10 @@ export default function ControlPanel({
 
   const handleDestinationSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    handleSetDestination(destinationAddress);
+    toast({
+      title: 'Feature Under Development',
+      description: 'The route planning feature is not yet implemented.',
+    });
   }
 
   const handleLogout = async () => {
@@ -95,11 +102,11 @@ export default function ControlPanel({
         
         <div className="space-y-3">
           <h3 className="font-semibold text-foreground flex items-center"><Siren className="mr-2 h-5 w-5 text-destructive" />Safety Tools</h3>
-          <div className="grid grid-cols-1 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" className="w-full justify-start text-base py-6">
-                  <Siren className="mr-3 h-6 w-6" /> Help Me (SOS)
+                  <Siren className="mr-3 h-6 w-6" /> SOS
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -114,6 +121,25 @@ export default function ControlPanel({
                   <AlertDialogAction onClick={onSosConfirm} disabled={sosLoading}>
                     {sosLoading ? 'Sending...' : 'Confirm SOS'}
                   </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="w-full border-amber-500 text-amber-500 hover:bg-amber-50 hover:text-amber-600 justify-start text-base py-6">
+                  <ShieldAlert className="mr-3 h-6 w-6" /> Report
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Report Suspicious Activity?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will mark your current area as potentially unsafe and enable location sharing for 30 minutes. Are you sure you want to proceed?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleReportActivity}>Confirm Report</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
@@ -163,14 +189,14 @@ export default function ControlPanel({
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                         <AlertDialogHeader>
-                        <AlertDialogTitle>Start Location Sharing?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Your live location will be shared with your trusted contacts for 30 minutes. You can stop sharing at any time.
-                        </AlertDialogDescription>
+                            <AlertDialogTitle>Start Location Sharing?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Your live location will be shared with your trusted contacts for 30 minutes. You can stop sharing at any time.
+                            </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleToggleTracking}>Start Sharing</AlertDialogAction>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleToggleTracking}>Start Sharing</AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>

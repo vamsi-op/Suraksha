@@ -27,6 +27,7 @@ interface GuardianAngelMapProps {
   userPosition: LatLngExpression | null;
   destination: LatLngExpression | null;
   dangerZones: DangerZone[];
+  onRouteFound: (coordinates: LatLngExpression[]) => void;
 }
 
 const VISAKHAPATNAM: LatLngExpression = [17.6868, 83.2185];
@@ -35,6 +36,7 @@ export default function GuardianAngelMap({
   userPosition,
   destination,
   dangerZones,
+  onRouteFound,
 }: GuardianAngelMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -144,6 +146,13 @@ export default function GuardianAngelMap({
         },
         createMarker: () => null,
       })
+      .on('routesfound', function(e) {
+          const routes = e.routes;
+          if (routes && routes.length > 0) {
+              const coordinates = routes[0].coordinates.map(c => [c.lat, c.lng] as LatLngExpression);
+              onRouteFound(coordinates);
+          }
+      })
       .on('routingerror', (e) => {
         console.warn('Routing error caught:', e);
         toast({
@@ -156,7 +165,7 @@ export default function GuardianAngelMap({
       
       routingControlRef.current = routingControl;
     }
-  }, [userPosition, destination, toast]);
+  }, [userPosition, destination, toast, onRouteFound]);
 
   return (
     <div
