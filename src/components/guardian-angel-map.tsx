@@ -138,7 +138,7 @@ export default function GuardianAngelMap({
           L.latLng(userLat, userLng),
           L.latLng(destLat, destLng),
         ],
-        routeWhileDragging: true,
+        routeWhileDragging: false,
         show: false,
         addWaypoints: false,
         lineOptions: {
