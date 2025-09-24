@@ -11,7 +11,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useAuth } from '@/lib/firebase/auth-context';
 import { auth } from '@/lib/firebase/config';
 import { Input } from './ui/input';
-import { useToast } from '@/hooks/use-toast';
 
 
 interface ControlPanelProps {
@@ -33,7 +32,6 @@ export default function ControlPanel({
   const [destinationAddress, setDestinationAddress] = useState('');
   const { user } = useAuth();
   const router = useRouter();
-  const { toast } = useToast();
 
 
   const onSosConfirm = () => {
@@ -51,10 +49,7 @@ export default function ControlPanel({
 
   const handleDestinationSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: 'Feature Under Development',
-      description: 'Destination routing is not yet implemented in this prototype.',
-    });
+    handleSetDestination(destinationAddress);
   }
 
   const handleLogout = async () => {
@@ -63,8 +58,8 @@ export default function ControlPanel({
   };
 
   return (
-    <Card className="h-full w-full flex flex-col shadow-2xl">
-      <CardHeader>
+    <Card className="h-full w-full flex flex-col shadow-2xl border-0 md:border">
+      <CardHeader className="pt-4 md:pt-6">
         <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <SurakshaLogo className="h-10 w-10 text-primary" />

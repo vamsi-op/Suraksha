@@ -7,10 +7,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/firebase/auth-context';
 
 import ControlPanel from '@/components/control-panel';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { PanelLeft, Loader2 } from 'lucide-react';
-import { getDistance } from '@/lib/utils';
+import { getDistance, isLineSegmentIntersectingCircle } from '@/lib/utils';
 import dynamic from 'next/dynamic';
 
 const GuardianAngelMap = dynamic(() => import('@/components/guardian-angel-map'), { 
@@ -46,6 +46,7 @@ export default function MapPage() {
   const [destination, setDestination] = useState<LatLngExpression | null>(null);
   const [isTracking, setIsTracking] = useState(false);
   const [trackingSeconds, setTrackingSeconds] = useState(1800);
+  const [routeCoordinates, setRouteCoordinates] = useState<LatLngExpression[]>([]);
   const alertedZones = useRef<Set<string>>(new Set());
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -102,9 +103,48 @@ export default function MapPage() {
     });
   };
 
+  const checkRouteAgainstDangerZones = (routeCoords: LatLngExpression[]) => {
+    if (routeCoords.length < 2) return;
+    
+    const intersectingZones = new Set<DangerZone>();
+
+    for (let i = 0; i < routeCoords.length - 1; i++) {
+      const segment: [LatLngExpression, LatLngExpression] = [routeCoords[i], routeCoords[i + 1]];
+      for (const zone of DANGER_ZONES) {
+        if (isLineSegmentIntersectingCircle(segment, zone.location, zone.radius)) {
+          intersectingZones.add(zone);
+        }
+      }
+    }
+
+    if (intersectingZones.size > 0) {
+      const highRiskZones = Array.from(intersectingZones).filter(z => z.level === 'high').length;
+      const moderateRiskZones = intersectingZones.size - highRiskZones;
+      
+      let description = 'Your route passes through ';
+      if (highRiskZones > 0) {
+        description += `${highRiskZones} high-risk zone${highRiskZones > 1 ? 's' : ''}`;
+      }
+      if (moderateRiskZones > 0) {
+        if (highRiskZones > 0) description += ' and ';
+        description += `${moderateRiskZones} moderate-risk zone${moderateRiskZones > 1 ? 's' : ''}`;
+      }
+      description += '. Please be cautious.';
+      
+      toast({
+        variant: 'destructive',
+        title: '⚠️ Route Warning',
+        description,
+        duration: 9000,
+      });
+    }
+  };
+
+
   const handleSetDestination = async (address: string) => {
     if (!address) {
       setDestination(null);
+      setRouteCoordinates([]);
       return;
     }
 
@@ -116,15 +156,17 @@ export default function MapPage() {
       if (data && data.length > 0) {
         const { lat, lon } = data[0];
         setDestination([parseFloat(lat), parseFloat(lon)]);
-        toast({ title: "Destination Set", description: "Calculating route..." });
+        toast({ title: "Destination Set", description: "Calculating safest route..." });
       } else {
         toast({ variant: 'destructive', title: "Address Not Found", description: "Could not find the specified location." });
         setDestination(null);
+        setRouteCoordinates([]);
       }
     } catch (error) {
       console.error("Geocoding error:", error);
       toast({ variant: 'destructive', title: "Geocoding Error", description: "Could not fetch location data." });
       setDestination(null);
+      setRouteCoordinates([]);
     }
   };
 
@@ -147,6 +189,11 @@ export default function MapPage() {
     }
   }
 
+  const handleRouteFound = (coords: LatLngExpression[]) => {
+    setRouteCoordinates(coords);
+    checkRouteAgainstDangerZones(coords);
+  }
+
   const controlPanelProps = {
     handleSos,
     isTracking,
@@ -161,6 +208,7 @@ export default function MapPage() {
         userPosition={userPosition}
         destination={destination}
         dangerZones={DANGER_ZONES}
+        onRouteFound={handleRouteFound}
       />
       {isMobile ? (
         <Sheet>
@@ -169,7 +217,13 @@ export default function MapPage() {
               <PanelLeft className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-[320px] p-0 z-[1001]">
+          <SheetContent side="left" className="w-[320px] p-0 z-[1001] flex flex-col">
+             <SheetHeader className="p-6 pb-0">
+              <SheetTitle>Control Panel</SheetTitle>
+              <SheetDescription>
+                Manage your safety tools and navigation from here.
+              </SheetDescription>
+            </SheetHeader>
             <ControlPanel {...controlPanelProps} />
           </SheetContent>
         </Sheet>
