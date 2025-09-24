@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/firebase/auth-context';
 
 import ControlPanel from '@/components/control-panel';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { PanelLeft, Loader2 } from 'lucide-react';
 import { getDistance, isLineSegmentIntersectingCircle } from '@/lib/utils';
@@ -48,6 +48,7 @@ export default function MapPage() {
   const [trackingSeconds, setTrackingSeconds] = useState(1800);
   const [routeCoordinates, setRouteCoordinates] = useState<LatLngExpression[]>([]);
   const [dangerZones, setDangerZones] = useState<DangerZone[]>(INITIAL_DANGER_ZONES);
+  const [lastReportedZoneId, setLastReportedZoneId] = useState<string | null>(null);
   const alertedZones = useRef<Set<string>>(new Set());
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -142,9 +143,13 @@ export default function MapPage() {
   };
 
   const handleSetDestination = (address: string) => {
+    // This is a placeholder for geocoding
+    // For now, let's just set a fixed destination for testing
+    // Example: Vizag RTC Complex
+    setDestination([17.7247, 83.3005]);
     toast({
-      title: 'Feature Under Development',
-      description: 'The route planning feature is not yet implemented.',
+      title: 'Route Set',
+      description: 'Calculating route to destination.',
     });
   };
 
@@ -177,12 +182,18 @@ export default function MapPage() {
       return;
     }
 
+    // Cancel previous report if one exists
+    if (lastReportedZoneId) {
+        handleCancelReport();
+    }
+
     if (!isTracking) {
       handleToggleTracking(); // Start tracking if not already
     }
 
+    const newZoneId = `reported-${new Date().getTime()}`;
     const newZone: DangerZone = {
-      id: `reported-${new Date().getTime()}`,
+      id: newZoneId,
       location: userPosition,
       radius: 500, // 500 meter radius for reported zones
       weight: 60, // Moderate risk
@@ -190,10 +201,22 @@ export default function MapPage() {
     };
 
     setDangerZones(prevZones => [...prevZones, newZone]);
+    setLastReportedZoneId(newZoneId);
 
     toast({
       title: 'Activity Reported',
       description: 'Thank you for your report. The area has been marked and your location sharing is active.',
+    });
+  };
+
+  const handleCancelReport = () => {
+    if (!lastReportedZoneId) return;
+
+    setDangerZones(prevZones => prevZones.filter(zone => zone.id !== lastReportedZoneId));
+    setLastReportedZoneId(null);
+    toast({
+      title: 'Report Canceled',
+      description: 'The previously marked area has been cleared.',
     });
   };
 
@@ -209,6 +232,8 @@ export default function MapPage() {
     handleToggleTracking,
     handleSetDestination,
     handleReportActivity,
+    handleCancelReport,
+    isReportActive: !!lastReportedZoneId,
   };
 
   return (

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { SurakshaLogo } from './icons';
-import { Siren, Share2, XCircle, Timer, User, LogOut, MapPin, Search, ShieldAlert } from 'lucide-react';
+import { Siren, Share2, XCircle, Timer, User, LogOut, MapPin, Search, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { auth } from '@/lib/firebase/config';
@@ -21,6 +21,8 @@ interface ControlPanelProps {
   handleToggleTracking: () => void;
   handleSetDestination: (address: string) => void;
   handleReportActivity: () => void;
+  handleCancelReport: () => void;
+  isReportActive: boolean;
 }
 
 export default function ControlPanel({
@@ -30,6 +32,8 @@ export default function ControlPanel({
   handleToggleTracking,
   handleSetDestination,
   handleReportActivity,
+  handleCancelReport,
+  isReportActive,
 }: ControlPanelProps) {
   const [sosLoading, setSosLoading] = useState(false);
   const [destinationAddress, setDestinationAddress] = useState('');
@@ -53,10 +57,15 @@ export default function ControlPanel({
 
   const handleDestinationSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: 'Feature Under Development',
-      description: 'The route planning feature is not yet implemented.',
-    });
+    if (destinationAddress.trim()) {
+      handleSetDestination(destinationAddress);
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Destination',
+        description: 'Please enter a destination address.',
+      });
+    }
   }
 
   const handleLogout = async () => {
@@ -124,25 +133,35 @@ export default function ControlPanel({
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" className="w-full border-amber-500 text-amber-500 hover:bg-amber-50 hover:text-amber-600 justify-start text-base py-6">
-                  <ShieldAlert className="mr-3 h-6 w-6" /> Report
+            {isReportActive ? (
+                <Button 
+                    variant="outline" 
+                    onClick={handleCancelReport} 
+                    className="w-full border-green-500 text-green-500 hover:bg-green-50 hover:text-green-600 justify-start text-base py-6"
+                >
+                    <ShieldCheck className="mr-3 h-6 w-6" /> Cancel Report
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Report Suspicious Activity?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will mark your current area as potentially unsafe and enable location sharing for 30 minutes. Are you sure you want to proceed?
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleReportActivity}>Confirm Report</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            ) : (
+                <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button variant="outline" className="w-full border-amber-500 text-amber-500 hover:bg-amber-50 hover:text-amber-600 justify-start text-base py-6">
+                    <ShieldAlert className="mr-3 h-6 w-6" /> Report
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Report Suspicious Activity?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This will mark your current area as potentially unsafe and enable location sharing for 30 minutes. Are you sure you want to proceed?
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleReportActivity}>Confirm Report</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+                </AlertDialog>
+            )}
           </div>
         </div>
         
