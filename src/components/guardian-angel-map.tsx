@@ -33,7 +33,6 @@ interface GuardianAngelMapProps {
   onRouteFound: (coordinates: LatLngExpression[]) => void;
   onRecenter: () => void;
   recenterCounter: number;
-  hasCenteredMap: boolean;
 }
 
 const VISAKHAPATNAM: LatLngExpression = [17.6868, 83.2185];
@@ -46,7 +45,6 @@ const GuardianAngelMap = memo(function GuardianAngelMap({
   onRouteFound,
   onRecenter,
   recenterCounter,
-  hasCenteredMap,
 }: GuardianAngelMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -56,7 +54,7 @@ const GuardianAngelMap = memo(function GuardianAngelMap({
   const routingControlRef = useRef<L.Routing.Control | null>(null);
   const { toast } = useToast();
   
-  const initialCenterDone = useRef(hasCenteredMap);
+  const hasCenteredMap = useRef(false);
 
   const getIcon = (IconComponent: React.ElementType, colorClass: string, bgClass: string) => {
     if (typeof window === 'undefined') return null;
@@ -107,9 +105,9 @@ const GuardianAngelMap = memo(function GuardianAngelMap({
       userMarkerRef.current.setLatLng(userPosition);
     }
 
-    if (!initialCenterDone.current) {
+    if (!hasCenteredMap.current) {
         mapRef.current.flyTo(userPosition, 15);
-        initialCenterDone.current = true;
+        hasCenteredMap.current = true;
     }
   }, [userPosition]);
   
@@ -220,7 +218,7 @@ const GuardianAngelMap = memo(function GuardianAngelMap({
       <Button
         size="icon"
         onClick={onRecenter}
-        className="absolute bottom-8 right-4 z-[1000] shadow-lg rounded-full"
+        className="absolute bottom-8 right-4 z-[1002] shadow-lg rounded-full"
         aria-label="Center map on my location"
       >
         <LocateFixed className="h-5 w-5" />
