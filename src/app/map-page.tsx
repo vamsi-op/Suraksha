@@ -65,30 +65,39 @@ export default function MapPage() {
 
   useEffect(() => {
     let watchId: number;
+  
+    const handleSuccess = (position: GeolocationPosition) => {
+      const pos: LatLngExpression = [position.coords.latitude, position.coords.longitude];
+      setUserPosition(pos);
+      if (!hasCenteredMap.current) {
+        hasCenteredMap.current = true;
+      }
+      checkProximity(pos);
+    };
+  
+    const handleError = (error: GeolocationPositionError) => {
+      console.error('Geolocation error:', error.message);
+      // Only set default location if we've never had a position before
+      if (!userPosition && !hasCenteredMap.current) {
+        toast({
+          variant: 'destructive',
+          title: 'Location Error',
+          description: 'Could not get your location. Defaulting to Visakhapatnam.',
+        });
+        setUserPosition(VISAKHAPATNAM);
+        hasCenteredMap.current = true; // Mark as centered to prevent re-triggering
+      }
+    };
+  
     if (navigator.geolocation) {
-      watchId = navigator.geolocation.watchPosition(
-        (position) => {
-          const pos: LatLngExpression = [position.coords.latitude, position.coords.longitude];
-          setUserPosition(pos);
-          if (!hasCenteredMap.current) {
-            hasCenteredMap.current = true;
-          }
-          checkProximity(pos);
-        },
-        (error) => {
-          console.error('Geolocation error:', error.message);
-          if (!userPosition && !hasCenteredMap.current) {
-             toast({
-              variant: 'destructive',
-              title: 'Location Error',
-              description: 'Could not get your location. Defaulting to Visakhapatnam.',
-            });
-            setUserPosition(VISAKHAPATNAM);
-            hasCenteredMap.current = true;
-          }
-        },
-        { enableHighAccuracy: true }
-      );
+      watchId = navigator.geolocation.watchPosition(handleSuccess, handleError, {
+        enableHighAccuracy: true,
+      });
+    } else {
+      handleError({
+        code: 2,
+        message: 'Geolocation is not supported by this browser.',
+      } as GeolocationPositionError);
     }
   
     return () => {
@@ -96,7 +105,8 @@ export default function MapPage() {
         navigator.geolocation.clearWatch(watchId);
       }
     };
-  }, [toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   // Listen for real-time updates to activity reports
   useEffect(() => {
