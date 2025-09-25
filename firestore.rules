@@ -1,10 +1,18 @@
 
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow users to read and write only their own data
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+    // Allow authenticated users to manage their own contacts
+    match /users/{userId}/contacts/{contactId} {
+      allow read, create, update, delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Allow anyone to read community reports, but only authenticated users to create them.
+    match /activity-reports/{reportId} {
+      allow read: if true;
+      allow create: if request.auth != null;
     }
   }
 }
