@@ -49,6 +49,7 @@ export default function GuardianAngelMap({
   const dangerZoneLayerRef = useRef<L.LayerGroup | null>(null);
   const activityReportsLayerRef = useRef<L.LayerGroup | null>(null);
   const routingControlRef = useRef<L.Routing.Control | null>(null);
+  const hasCenteredMap = useRef(false);
   const { toast } = useToast();
 
   const getIcon = (IconComponent: React.ElementType, colorClass: string, bgClass: string) => {
@@ -103,8 +104,9 @@ export default function GuardianAngelMap({
       userMarkerRef.current.setLatLng(userPosition);
     }
 
-    if (!destination) {
+    if (!hasCenteredMap.current && !destination) {
       mapRef.current.flyTo(userPosition, 15);
+      hasCenteredMap.current = true;
     }
   }, [userPosition, destination]);
 
