@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/firebase/auth-context';
 
 import ControlPanel from '@/components/control-panel';
-import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { PanelLeft, Loader2 } from 'lucide-react';
 import { getDistance, isLineSegmentIntersectingCircle } from '@/lib/utils';
@@ -51,7 +51,9 @@ export default function MapPage() {
   const [isTracking, setIsTracking] = useState(false);
   const [trackingSeconds, setTrackingSeconds] = useState(1800);
   const [routeCoordinates, setRouteCoordinates] = useState<LatLngExpression[]>([]);
-  const [dangerZones] = useState<DangerZone[]>(INITIAL_DANGER_ZONES);
+  const [dangerZones, setDangerZones] = useState<DangerZone[]>(INITIAL_DANGER_ZONES);
+  const [lastReportedZoneId, setLastReportedZoneId] = useState<string | null>(null);
+
   const [activityReports, setActivityReports] = useState<ActivityReport[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newReportLocation, setNewReportLocation] = useState<LatLngExpression | null>(null);
@@ -202,33 +204,61 @@ export default function MapPage() {
         setIsTracking(true);
         toast({ title: 'Location Sharing Started', description: 'Your location will be shared for 30 minutes.' });
     }
-  }
+  };
+
+  const handleReportActivity = () => {
+    if (!userPosition) {
+      toast({ variant: 'destructive', title: 'Cannot Report', description: 'Your location is not available yet.' });
+      return;
+    }
+
+    if (!isTracking) {
+      handleToggleTracking();
+    }
+    
+    const newZoneId = `user-report-${Date.now()}`;
+    const newZone: DangerZone = {
+      id: newZoneId,
+      location: userPosition,
+      radius: 500,
+      weight: 60,
+      level: 'moderate',
+    };
+    
+    setDangerZones(prevZones => [...prevZones, newZone]);
+    setLastReportedZoneId(newZoneId);
+    toast({ title: 'Activity Reported', description: 'Your location is marked as a temporary unsafe zone.' });
+  };
+
+  const handleCancelReport = () => {
+    if (lastReportedZoneId) {
+      setDangerZones(prevZones => prevZones.filter(zone => zone.id !== lastReportedZoneId));
+      setLastReportedZoneId(null);
+      toast({ title: 'Report Cancelled', description: 'The temporary unsafe zone has been removed.' });
+    }
+  };
   
   const handleMapClick = (latlng: LatLngExpression) => {
     setNewReportLocation(latlng);
     setDialogOpen(true);
   };
 
-  const handleReportSubmit = async (comment: string) => {
+  const handleReportSubmit = (comment: string) => {
     if (!newReportLocation || !user) {
         toast({ variant: 'destructive', title: 'Error', description: 'Could not submit report. Location or user not found.' });
         return;
     }
 
-    try {
-        await addActivityReport({
-            location: { latitude: newReportLocation[0], longitude: newReportLocation[1] },
-            comment,
-            userId: user.uid,
-            timestamp: Timestamp.now(),
-        });
-        toast({ title: 'Report Submitted', description: 'Thank you for helping keep the community safe.' });
-        setDialogOpen(false);
-        setNewReportLocation(null);
-    } catch (error) {
-        console.error("Error submitting report: ", error);
-        toast({ variant: 'destructive', title: 'Submission Failed', description: 'Could not save your report. Please try again.' });
-    }
+    addActivityReport({
+        location: { latitude: newReportLocation[0], longitude: newReportLocation[1] },
+        comment,
+        userId: user.uid,
+        timestamp: Timestamp.now(),
+    });
+
+    toast({ title: 'Report Submitted', description: 'Thank you for helping keep the community safe.' });
+    setDialogOpen(false);
+    setNewReportLocation(null);
   };
 
 
@@ -243,6 +273,9 @@ export default function MapPage() {
     trackingSeconds,
     handleToggleTracking,
     handleSetDestination,
+    handleReportActivity,
+    handleCancelReport,
+    lastReportedZoneId,
   };
 
   return (

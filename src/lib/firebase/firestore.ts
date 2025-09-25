@@ -1,6 +1,8 @@
 import { db, auth } from './config';
 import { collection, addDoc, getDocs, query, doc, deleteDoc, GeoPoint, Timestamp } from 'firebase/firestore';
 import type { EmergencyContact } from '../definitions';
+import { errorEmitter } from './error-emitter';
+import { FirestorePermissionError } from './errors';
 
 // This file should only contain CLIENT-SIDE Firestore operations.
 
@@ -43,14 +45,27 @@ export const deleteContact = async (contactId: string) => {
 };
 
 // Add a new activity report (CLIENT-SIDE)
-export const addActivityReport = async (report: {
+export const addActivityReport = (report: {
     location: { latitude: number; longitude: number };
     comment: string;
     userId: string;
     timestamp: Timestamp;
 }) => {
-    await addDoc(collection(db, 'activity-reports'), {
+    const reportData = {
         ...report,
         location: new GeoPoint(report.location.latitude, report.location.longitude),
-    });
+    };
+
+    const collectionRef = collection(db, 'activity-reports');
+
+    addDoc(collectionRef, reportData)
+      .catch(async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: collectionRef.path,
+          operation: 'create',
+          requestResourceData: reportData,
+        });
+
+        errorEmitter.emit('permission-error', permissionError);
+      });
 };
