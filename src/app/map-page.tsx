@@ -54,7 +54,6 @@ export default function MapPage() {
   const [activityReports, setActivityReports] = useState<ActivityReport[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newReportLocation, setNewReportLocation] = useState<LatLngExpression | null>(null);
-  const initialUserPositionSet = useRef(false);
 
   const alertedZones = useRef<Set<string>>(new Set());
   const isMobile = useIsMobile();
@@ -62,31 +61,34 @@ export default function MapPage() {
   const { user } = useAuth();
 
   useEffect(() => {
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        const pos: LatLngExpression = [position.coords.latitude, position.coords.longitude];
-        if (!initialUserPositionSet.current) {
-            setUserPosition(pos);
-            initialUserPositionSet.current = true;
-        }
-        checkProximity(pos);
-      },
-      () => {
-        if (!initialUserPositionSet.current) {
-            toast({
-              variant: 'destructive',
-              title: 'Location Error',
-              description: 'Could not get your location. Please enable location services. Defaulting to Visakhapatnam.',
-            });
-            setUserPosition(VISAKHAPATNAM);
-            initialUserPositionSet.current = true;
-        }
-      },
-      { enableHighAccuracy: true }
-    );
-
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, [toast]);
+    let watchId: number;
+    if (navigator.geolocation) {
+      watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const pos: LatLngExpression = [position.coords.latitude, position.coords.longitude];
+          setUserPosition(pos);
+          checkProximity(pos);
+        },
+        () => {
+          if (!userPosition) { // Only show error and default if we don't have a position yet
+              toast({
+                variant: 'destructive',
+                title: 'Location Error',
+                description: 'Could not get your location. Please enable location services. Defaulting to Visakhapatnam.',
+              });
+              setUserPosition(VISAKHAPATNAM);
+          }
+        },
+        { enableHighAccuracy: true }
+      );
+    }
+  
+    return () => {
+      if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+    };
+  }, [toast, userPosition]); // Rerun if userPosition is null
   
   // Listen for real-time updates to activity reports
   useEffect(() => {
@@ -231,6 +233,7 @@ export default function MapPage() {
     toast({ title: 'Report Submitted', description: 'Thank you for helping keep the community safe.' });
     setDialogOpen(false);
     setNewReportLocation(null);
+    window.location.reload();
   };
 
 
