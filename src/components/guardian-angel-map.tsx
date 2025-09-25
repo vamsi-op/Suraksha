@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, memo } from 'react';
+import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-routing-machine';
@@ -37,7 +37,7 @@ interface GuardianAngelMapProps {
 
 const VISAKHAPATNAM: LatLngExpression = [17.6868, 83.2185];
 
-const GuardianAngelMap = memo(function GuardianAngelMap({
+const GuardianAngelMap = React.memo(function GuardianAngelMap({
   userPosition,
   destination,
   dangerZones,
@@ -218,7 +218,7 @@ const GuardianAngelMap = memo(function GuardianAngelMap({
       <Button
         size="icon"
         onClick={onRecenter}
-        className="absolute bottom-4 left-4 z-[1002] shadow-lg rounded-full"
+        className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1002] shadow-lg rounded-full"
         aria-label="Center map on my location"
       >
         <LocateFixed className="h-5 w-5" />
