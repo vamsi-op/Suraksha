@@ -1,5 +1,7 @@
+'use client';
+
 import { db, auth } from './config';
-import { collection, addDoc, getDocs, query, doc, deleteDoc, GeoPoint, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, doc, deleteDoc, GeoPoint, Timestamp, FirebaseError } from 'firebase/firestore';
 import type { EmergencyContact } from '../definitions';
 import { errorEmitter } from './error-emitter';
 import { FirestorePermissionError } from './errors';
@@ -59,13 +61,18 @@ export const addActivityReport = (report: {
     const collectionRef = collection(db, 'activity-reports');
 
     addDoc(collectionRef, reportData)
-      .catch(async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: collectionRef.path,
-          operation: 'create',
-          requestResourceData: reportData,
-        });
-
-        errorEmitter.emit('permission-error', permissionError);
+      .catch(async (serverError: FirebaseError) => {
+        // Only handle permission errors with our custom logic
+        if (serverError.code === 'permission-denied') {
+            const permissionError = new FirestorePermissionError({
+              path: collectionRef.path,
+              operation: 'create',
+              requestResourceData: reportData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+            // For other errors, you might want to log them or show a generic message
+            console.error("Firestore error:", serverError);
+        }
       });
 };
