@@ -99,7 +99,7 @@ const GuardianAngelMap = memo(function GuardianAngelMap({
       userMarkerRef.current.setLatLng(userPosition);
     }
 
-    if (!hasCenteredMap && userPosition) {
+    if (!hasCenteredMap && userPosition[0] !== VISAKHAPATNAM[0] && userPosition[1] !== VISAKHAPATNAM[1]) {
         mapRef.current.flyTo(userPosition, 15);
     }
   }, [userPosition, hasCenteredMap]);

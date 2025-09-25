@@ -69,9 +69,6 @@ export default function MapPage() {
         (position) => {
           const pos: LatLngExpression = [position.coords.latitude, position.coords.longitude];
           setUserPosition(pos);
-          if (!hasCenteredMap.current) {
-            hasCenteredMap.current = true;
-          }
           checkProximity(pos);
         },
         (error) => {
@@ -93,7 +90,7 @@ export default function MapPage() {
         navigator.geolocation.clearWatch(watchId);
       }
     };
-  }, [toast]);
+  }, [toast, userPosition]);
   
   // Listen for real-time updates to activity reports
   useEffect(() => {
