@@ -218,7 +218,7 @@ const GuardianAngelMap = memo(function GuardianAngelMap({
       <Button
         size="icon"
         onClick={onRecenter}
-        className="absolute bottom-8 left-4 z-[1002] shadow-lg rounded-full"
+        className="absolute bottom-4 left-4 z-[1002] shadow-lg rounded-full"
         aria-label="Center map on my location"
       >
         <LocateFixed className="h-5 w-5" />
