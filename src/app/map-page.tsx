@@ -55,6 +55,7 @@ export default function MapPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newReportLocation, setNewReportLocation] = useState<LatLngExpression | null>(null);
   const [recenterCounter, setRecenterCounter] = useState(0);
+  const [isLocating, setIsLocating] = useState(true);
 
   const alertedZones = useRef<Set<string>>(new Set());
   const isMobile = useIsMobile();
@@ -69,23 +70,22 @@ export default function MapPage() {
     const handleSuccess = (position: GeolocationPosition) => {
       const pos: LatLngExpression = [position.coords.latitude, position.coords.longitude];
       setUserPosition(pos);
-      if (!hasCenteredMap.current) {
-        hasCenteredMap.current = true;
+      if (isLocating) {
+        setIsLocating(false);
       }
       checkProximity(pos);
     };
   
     const handleError = (error: GeolocationPositionError) => {
       console.error('Geolocation error:', error.message);
-      // Only set default location if we've never had a position before
-      if (!userPosition && !hasCenteredMap.current) {
+      if (isLocating) {
         toast({
           variant: 'destructive',
           title: 'Location Error',
           description: 'Could not get your location. Defaulting to Visakhapatnam.',
         });
         setUserPosition(VISAKHAPATNAM);
-        hasCenteredMap.current = true; // Mark as centered to prevent re-triggering
+        setIsLocating(false);
       }
     };
   
@@ -286,6 +286,15 @@ export default function MapPage() {
     handleOpenReportDialog,
   };
 
+  if (isLocating) {
+    return (
+      <div className="h-screen w-screen bg-muted flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-4 text-muted-foreground">Finding your location...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="relative h-screen w-screen">
       <GuardianAngelMap
@@ -296,7 +305,7 @@ export default function MapPage() {
         onRouteFound={handleRouteFound}
         onRecenter={handleRecenter}
         recenterCounter={recenterCounter}
-        hasCenteredMap={hasCenteredMap.current}
+        hasCenteredMap={!hasCenteredMap.current}
       />
       {isMobile ? (
         <Sheet>

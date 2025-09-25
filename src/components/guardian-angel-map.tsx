@@ -56,7 +56,7 @@ const GuardianAngelMap = memo(function GuardianAngelMap({
   const routingControlRef = useRef<L.Routing.Control | null>(null);
   const { toast } = useToast();
   
-  const initialCenterDone = useRef(false);
+  const initialCenterDone = useRef(hasCenteredMap);
 
   const getIcon = (IconComponent: React.ElementType, colorClass: string, bgClass: string) => {
     if (typeof window === 'undefined') return null;
@@ -76,7 +76,8 @@ const GuardianAngelMap = memo(function GuardianAngelMap({
   useEffect(() => {
     if (typeof window === 'undefined' || mapRef.current || !mapContainerRef.current) return;
 
-    mapRef.current = L.map(mapContainerRef.current).setView(VISAKHAPATNAM, 13);
+    const initialCenter = userPosition || VISAKHAPATNAM;
+    mapRef.current = L.map(mapContainerRef.current).setView(initialCenter, 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -92,7 +93,7 @@ const GuardianAngelMap = memo(function GuardianAngelMap({
         mapRef.current = null;
       }
     };
-  }, []);
+  }, [userPosition]);
 
   // User marker and initial centering
   useEffect(() => {
@@ -106,11 +107,11 @@ const GuardianAngelMap = memo(function GuardianAngelMap({
       userMarkerRef.current.setLatLng(userPosition);
     }
 
-    if (hasCenteredMap && !initialCenterDone.current) {
+    if (!initialCenterDone.current) {
         mapRef.current.flyTo(userPosition, 15);
         initialCenterDone.current = true;
     }
-  }, [userPosition, hasCenteredMap]);
+  }, [userPosition]);
   
   // Recenter logic
   useEffect(() => {
