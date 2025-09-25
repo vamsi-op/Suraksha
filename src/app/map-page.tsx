@@ -68,8 +68,9 @@ export default function MapPage() {
       watchId = navigator.geolocation.watchPosition(
         (position) => {
           const pos: LatLngExpression = [position.coords.latitude, position.coords.longitude];
-          if (!userPosition) {
-            setUserPosition(pos);
+          setUserPosition(pos);
+          if (!hasCenteredMap.current) {
+            hasCenteredMap.current = true;
           }
           checkProximity(pos);
         },
@@ -216,8 +217,16 @@ export default function MapPage() {
     }
   };
   
-  const handleMapClick = (latlng: LatLngExpression) => {
-    setNewReportLocation(latlng);
+  const handleOpenReportDialog = () => {
+    if (!userPosition) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot Report',
+        description: 'Your location is not available yet. Please wait a moment and try again.'
+      });
+      return;
+    }
+    setNewReportLocation(userPosition);
     setDialogOpen(true);
   };
 
@@ -250,6 +259,7 @@ export default function MapPage() {
     trackingSeconds,
     handleToggleTracking,
     handleSetDestination,
+    handleOpenReportDialog,
   };
 
   return (
@@ -260,8 +270,7 @@ export default function MapPage() {
         dangerZones={dangerZones}
         activityReports={activityReports}
         onRouteFound={handleRouteFound}
-        onMapClick={handleMapClick}
-        hasCenteredMap={hasCenteredMap}
+        hasCenteredMap={hasCenteredMap.current}
       />
       {isMobile ? (
         <Sheet>

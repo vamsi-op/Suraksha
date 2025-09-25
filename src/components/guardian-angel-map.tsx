@@ -30,7 +30,7 @@ interface GuardianAngelMapProps {
   dangerZones: DangerZone[];
   activityReports: ActivityReport[];
   onRouteFound: (coordinates: LatLngExpression[]) => void;
-  onMapClick: (latlng: LatLngExpression) => void;
+  hasCenteredMap: boolean;
 }
 
 const VISAKHAPATNAM: LatLngExpression = [17.6868, 83.2185];
@@ -41,7 +41,7 @@ const GuardianAngelMap = memo(function GuardianAngelMap({
   dangerZones,
   activityReports,
   onRouteFound,
-  onMapClick,
+  hasCenteredMap,
 }: GuardianAngelMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -49,7 +49,6 @@ const GuardianAngelMap = memo(function GuardianAngelMap({
   const dangerZoneLayerRef = useRef<L.LayerGroup | null>(null);
   const activityReportsLayerRef = useRef<L.LayerGroup | null>(null);
   const routingControlRef = useRef<L.Routing.Control | null>(null);
-  const hasCenteredMap = useRef(false);
   const { toast } = useToast();
 
   const getIcon = (IconComponent: React.ElementType, colorClass: string, bgClass: string) => {
@@ -80,17 +79,13 @@ const GuardianAngelMap = memo(function GuardianAngelMap({
     dangerZoneLayerRef.current = L.layerGroup().addTo(mapRef.current);
     activityReportsLayerRef.current = L.layerGroup().addTo(mapRef.current);
 
-    mapRef.current.on('click', (e) => {
-      onMapClick([e.latlng.lat, e.latlng.lng]);
-    });
-
     return () => {
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
       }
     };
-  }, [onMapClick]);
+  }, []);
 
   // User marker
   useEffect(() => {
@@ -104,11 +99,10 @@ const GuardianAngelMap = memo(function GuardianAngelMap({
       userMarkerRef.current.setLatLng(userPosition);
     }
 
-    if (!hasCenteredMap.current && userPosition) {
+    if (!hasCenteredMap && userPosition) {
         mapRef.current.flyTo(userPosition, 15);
-        hasCenteredMap.current = true;
     }
-  }, [userPosition]);
+  }, [userPosition, hasCenteredMap]);
 
   // Danger zones
   useEffect(() => {

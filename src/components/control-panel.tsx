@@ -20,6 +20,7 @@ interface ControlPanelProps {
   trackingSeconds: number;
   handleToggleTracking: () => void;
   handleSetDestination: (address: string) => void;
+  handleOpenReportDialog: () => void;
 }
 
 export default function ControlPanel({
@@ -28,6 +29,7 @@ export default function ControlPanel({
   trackingSeconds,
   handleToggleTracking,
   handleSetDestination,
+  handleOpenReportDialog,
 }: ControlPanelProps) {
   const [sosLoading, setSosLoading] = useState(false);
   const [destinationAddress, setDestinationAddress] = useState('');
@@ -190,8 +192,11 @@ export default function ControlPanel({
         <div className="space-y-3">
             <h3 className="font-semibold text-foreground flex items-center"><MessageSquarePlus className="mr-2 h-5 w-5 text-accent"/>Community Reports</h3>
             <p className="text-sm text-muted-foreground">
-                Click anywhere on the map to report a suspicious activity. Your comment will be visible to other users to help keep the community safe.
+                Report suspicious activity at your current location. Your comment will be visible to other users.
             </p>
+            <Button onClick={handleOpenReportDialog} variant="outline" className="w-full">
+                <MessageSquarePlus className="mr-2 h-4 w-4" /> Report Activity
+            </Button>
         </div>
         
       </CardContent>
