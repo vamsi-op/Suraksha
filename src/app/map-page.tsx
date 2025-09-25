@@ -59,6 +59,8 @@ export default function MapPage() {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { user } = useAuth();
+  
+  const hasCenteredMap = useRef(false);
 
   useEffect(() => {
     let watchId: number;
@@ -66,17 +68,19 @@ export default function MapPage() {
       watchId = navigator.geolocation.watchPosition(
         (position) => {
           const pos: LatLngExpression = [position.coords.latitude, position.coords.longitude];
-          setUserPosition(pos);
+          if (!userPosition) {
+            setUserPosition(pos);
+          }
           checkProximity(pos);
         },
-        () => {
-          if (!userPosition) { // Only show error and default if we don't have a position yet
-              toast({
-                variant: 'destructive',
-                title: 'Location Error',
-                description: 'Could not get your location. Please enable location services. Defaulting to Visakhapatnam.',
-              });
-              setUserPosition(VISAKHAPATNAM);
+        (error) => {
+          if (!userPosition) {
+            toast({
+              variant: 'destructive',
+              title: 'Location Error',
+              description: 'Could not get your location. Defaulting to Visakhapatnam.',
+            });
+            setUserPosition(VISAKHAPATNAM);
           }
         },
         { enableHighAccuracy: true }
@@ -88,7 +92,7 @@ export default function MapPage() {
         navigator.geolocation.clearWatch(watchId);
       }
     };
-  }, [toast, userPosition]); // Rerun if userPosition is null
+  }, [toast, userPosition]);
   
   // Listen for real-time updates to activity reports
   useEffect(() => {
@@ -233,7 +237,6 @@ export default function MapPage() {
     toast({ title: 'Report Submitted', description: 'Thank you for helping keep the community safe.' });
     setDialogOpen(false);
     setNewReportLocation(null);
-    window.location.reload();
   };
 
 
@@ -258,6 +261,7 @@ export default function MapPage() {
         activityReports={activityReports}
         onRouteFound={handleRouteFound}
         onMapClick={handleMapClick}
+        hasCenteredMap={hasCenteredMap}
       />
       {isMobile ? (
         <Sheet>
