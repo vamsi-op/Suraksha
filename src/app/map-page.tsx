@@ -93,7 +93,7 @@ export default function MapPage() {
         navigator.geolocation.clearWatch(watchId);
       }
     };
-  }, [toast, userPosition]);
+  }, [toast]);
   
   // Listen for real-time updates to activity reports
   useEffect(() => {
