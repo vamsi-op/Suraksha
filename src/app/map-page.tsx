@@ -50,13 +50,11 @@ export default function MapPage() {
   const [destination, setDestination] = useState<LatLngExpression | null>(null);
   const [isTracking, setIsTracking] = useState(false);
   const [trackingSeconds, setTrackingSeconds] = useState(1800);
-  const [routeCoordinates, setRouteCoordinates] = useState<LatLngExpression[]>([]);
   const [dangerZones, setDangerZones] = useState<DangerZone[]>(INITIAL_DANGER_ZONES);
-  const [lastReportedZoneId, setLastReportedZoneId] = useState<string | null>(null);
-
   const [activityReports, setActivityReports] = useState<ActivityReport[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newReportLocation, setNewReportLocation] = useState<LatLngExpression | null>(null);
+  const initialUserPositionSet = useRef(false);
 
   const alertedZones = useRef<Set<string>>(new Set());
   const isMobile = useIsMobile();
@@ -67,16 +65,22 @@ export default function MapPage() {
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
         const pos: LatLngExpression = [position.coords.latitude, position.coords.longitude];
-        setUserPosition(pos);
+        if (!initialUserPositionSet.current) {
+            setUserPosition(pos);
+            initialUserPositionSet.current = true;
+        }
         checkProximity(pos);
       },
       () => {
-        toast({
-          variant: 'destructive',
-          title: 'Location Error',
-          description: 'Could not get your location. Please enable location services. Defaulting to Visakhapatnam.',
-        });
-        setUserPosition(VISAKHAPATNAM);
+        if (!initialUserPositionSet.current) {
+            toast({
+              variant: 'destructive',
+              title: 'Location Error',
+              description: 'Could not get your location. Please enable location services. Defaulting to Visakhapatnam.',
+            });
+            setUserPosition(VISAKHAPATNAM);
+            initialUserPositionSet.current = true;
+        }
       },
       { enableHighAccuracy: true }
     );
@@ -205,38 +209,6 @@ export default function MapPage() {
         toast({ title: 'Location Sharing Started', description: 'Your location will be shared for 30 minutes.' });
     }
   };
-
-  const handleReportActivity = () => {
-    if (!userPosition) {
-      toast({ variant: 'destructive', title: 'Cannot Report', description: 'Your location is not available yet.' });
-      return;
-    }
-
-    if (!isTracking) {
-      handleToggleTracking();
-    }
-    
-    const newZoneId = `user-report-${Date.now()}`;
-    const newZone: DangerZone = {
-      id: newZoneId,
-      location: userPosition,
-      radius: 500,
-      weight: 60,
-      level: 'moderate',
-    };
-    
-    setDangerZones(prevZones => [...prevZones, newZone]);
-    setLastReportedZoneId(newZoneId);
-    toast({ title: 'Activity Reported', description: 'Your location is marked as a temporary unsafe zone.' });
-  };
-
-  const handleCancelReport = () => {
-    if (lastReportedZoneId) {
-      setDangerZones(prevZones => prevZones.filter(zone => zone.id !== lastReportedZoneId));
-      setLastReportedZoneId(null);
-      toast({ title: 'Report Cancelled', description: 'The temporary unsafe zone has been removed.' });
-    }
-  };
   
   const handleMapClick = (latlng: LatLngExpression) => {
     setNewReportLocation(latlng);
@@ -263,7 +235,6 @@ export default function MapPage() {
 
 
   const handleRouteFound = (coords: LatLngExpression[]) => {
-    setRouteCoordinates(coords);
     checkRouteAgainstDangerZones(coords);
   }
 
@@ -273,9 +244,6 @@ export default function MapPage() {
     trackingSeconds,
     handleToggleTracking,
     handleSetDestination,
-    handleReportActivity,
-    handleCancelReport,
-    lastReportedZoneId,
   };
 
   return (
