@@ -54,6 +54,7 @@ export default function MapPage() {
   const [activityReports, setActivityReports] = useState<ActivityReport[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newReportLocation, setNewReportLocation] = useState<LatLngExpression | null>(null);
+  const [recenterCounter, setRecenterCounter] = useState(0);
 
   const alertedZones = useRef<Set<string>>(new Set());
   const isMobile = useIsMobile();
@@ -69,16 +70,21 @@ export default function MapPage() {
         (position) => {
           const pos: LatLngExpression = [position.coords.latitude, position.coords.longitude];
           setUserPosition(pos);
+          if (!hasCenteredMap.current) {
+            hasCenteredMap.current = true;
+          }
           checkProximity(pos);
         },
         (error) => {
-          if (!userPosition) {
-            toast({
+          console.error('Geolocation error:', error.message);
+          if (!userPosition && !hasCenteredMap.current) {
+             toast({
               variant: 'destructive',
               title: 'Location Error',
               description: 'Could not get your location. Defaulting to Visakhapatnam.',
             });
             setUserPosition(VISAKHAPATNAM);
+            hasCenteredMap.current = true;
           }
         },
         { enableHighAccuracy: true }
@@ -90,7 +96,7 @@ export default function MapPage() {
         navigator.geolocation.clearWatch(watchId);
       }
     };
-  }, [toast, userPosition]);
+  }, [toast]);
   
   // Listen for real-time updates to activity reports
   useEffect(() => {
@@ -245,6 +251,17 @@ export default function MapPage() {
     setNewReportLocation(null);
   };
 
+  const handleRecenter = () => {
+    if (!userPosition) {
+      toast({
+        title: "Can't center",
+        description: "Your location is not available yet."
+      });
+      return;
+    }
+    setRecenterCounter(c => c + 1);
+  };
+
 
   const handleRouteFound = (coords: LatLngExpression[]) => {
     checkRouteAgainstDangerZones(coords);
@@ -267,6 +284,8 @@ export default function MapPage() {
         dangerZones={dangerZones}
         activityReports={activityReports}
         onRouteFound={handleRouteFound}
+        onRecenter={handleRecenter}
+        recenterCounter={recenterCounter}
         hasCenteredMap={hasCenteredMap.current}
       />
       {isMobile ? (

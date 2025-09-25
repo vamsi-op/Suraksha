@@ -7,10 +7,11 @@ import 'leaflet-routing-machine';
 import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
 
 import ReactDOMServer from 'react-dom/server';
-import { PersonStanding, MessageSquareWarning } from 'lucide-react';
+import { PersonStanding, MessageSquareWarning, LocateFixed } from 'lucide-react';
 import type { DangerZone, LatLngExpression, ActivityReport } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
+import { Button } from './ui/button';
 
 // Fix Leaflet icons in Next.js
 if (typeof window !== 'undefined' && L.Icon.Default.prototype) {
@@ -30,6 +31,8 @@ interface GuardianAngelMapProps {
   dangerZones: DangerZone[];
   activityReports: ActivityReport[];
   onRouteFound: (coordinates: LatLngExpression[]) => void;
+  onRecenter: () => void;
+  recenterCounter: number;
   hasCenteredMap: boolean;
 }
 
@@ -41,6 +44,8 @@ const GuardianAngelMap = memo(function GuardianAngelMap({
   dangerZones,
   activityReports,
   onRouteFound,
+  onRecenter,
+  recenterCounter,
   hasCenteredMap,
 }: GuardianAngelMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -50,6 +55,8 @@ const GuardianAngelMap = memo(function GuardianAngelMap({
   const activityReportsLayerRef = useRef<L.LayerGroup | null>(null);
   const routingControlRef = useRef<L.Routing.Control | null>(null);
   const { toast } = useToast();
+  
+  const initialCenterDone = useRef(false);
 
   const getIcon = (IconComponent: React.ElementType, colorClass: string, bgClass: string) => {
     if (typeof window === 'undefined') return null;
@@ -87,7 +94,7 @@ const GuardianAngelMap = memo(function GuardianAngelMap({
     };
   }, []);
 
-  // User marker
+  // User marker and initial centering
   useEffect(() => {
     if (!mapRef.current || !userPosition) return;
     const userIcon = getIcon(PersonStanding, 'text-primary-foreground', 'bg-primary');
@@ -99,10 +106,19 @@ const GuardianAngelMap = memo(function GuardianAngelMap({
       userMarkerRef.current.setLatLng(userPosition);
     }
 
-    if (!hasCenteredMap && userPosition[0] !== VISAKHAPATNAM[0] && userPosition[1] !== VISAKHAPATNAM[1]) {
+    if (hasCenteredMap && !initialCenterDone.current) {
         mapRef.current.flyTo(userPosition, 15);
+        initialCenterDone.current = true;
     }
   }, [userPosition, hasCenteredMap]);
+  
+  // Recenter logic
+  useEffect(() => {
+    if (recenterCounter > 0 && mapRef.current && userPosition) {
+        mapRef.current.flyTo(userPosition, 15);
+    }
+  }, [recenterCounter, userPosition]);
+
 
   // Danger zones
   useEffect(() => {
@@ -194,11 +210,21 @@ const GuardianAngelMap = memo(function GuardianAngelMap({
   }, [userPosition, destination, toast, onRouteFound]);
 
   return (
-    <div
-      ref={mapContainerRef}
-      className="h-screen w-full z-10"
-      style={{ minHeight: '400px' }}
-    />
+    <>
+      <div
+        ref={mapContainerRef}
+        className="h-screen w-full z-10"
+        style={{ minHeight: '400px' }}
+      />
+      <Button
+        size="icon"
+        onClick={onRecenter}
+        className="absolute bottom-8 right-4 z-[1000] shadow-lg rounded-full"
+        aria-label="Center map on my location"
+      >
+        <LocateFixed className="h-5 w-5" />
+      </Button>
+    </>
   );
 });
 
