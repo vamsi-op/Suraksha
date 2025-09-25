@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, memo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-routing-machine';
@@ -35,7 +35,7 @@ interface GuardianAngelMapProps {
 
 const VISAKHAPATNAM: LatLngExpression = [17.6868, 83.2185];
 
-export default function GuardianAngelMap({
+const GuardianAngelMap = memo(function GuardianAngelMap({
   userPosition,
   destination,
   dangerZones,
@@ -104,11 +104,11 @@ export default function GuardianAngelMap({
       userMarkerRef.current.setLatLng(userPosition);
     }
 
-    if (!hasCenteredMap.current && !destination) {
-      mapRef.current.flyTo(userPosition, 15);
-      hasCenteredMap.current = true;
+    if (!hasCenteredMap.current && userPosition) {
+        mapRef.current.flyTo(userPosition, 15);
+        hasCenteredMap.current = true;
     }
-  }, [userPosition, destination]);
+  }, [userPosition]);
 
   // Danger zones
   useEffect(() => {
@@ -206,4 +206,6 @@ export default function GuardianAngelMap({
       style={{ minHeight: '400px' }}
     />
   );
-}
+});
+
+export default GuardianAngelMap;
