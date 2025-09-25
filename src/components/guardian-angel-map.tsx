@@ -7,9 +7,10 @@ import 'leaflet-routing-machine';
 import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
 
 import ReactDOMServer from 'react-dom/server';
-import { PersonStanding } from 'lucide-react';
-import type { DangerZone, LatLngExpression } from '@/lib/definitions';
+import { PersonStanding, MessageSquareWarning } from 'lucide-react';
+import type { DangerZone, LatLngExpression, ActivityReport } from '@/lib/definitions';
 import { useToast } from '@/hooks/use-toast';
+import { formatDistanceToNow } from 'date-fns';
 
 // Fix Leaflet icons in Next.js
 if (typeof window !== 'undefined' && L.Icon.Default.prototype) {
@@ -27,7 +28,9 @@ interface GuardianAngelMapProps {
   userPosition: LatLngExpression | null;
   destination: LatLngExpression | null;
   dangerZones: DangerZone[];
+  activityReports: ActivityReport[];
   onRouteFound: (coordinates: LatLngExpression[]) => void;
+  onMapClick: (latlng: LatLngExpression) => void;
 }
 
 const VISAKHAPATNAM: LatLngExpression = [17.6868, 83.2185];
@@ -36,28 +39,29 @@ export default function GuardianAngelMap({
   userPosition,
   destination,
   dangerZones,
+  activityReports,
   onRouteFound,
+  onMapClick,
 }: GuardianAngelMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const userMarkerRef = useRef<L.Marker | null>(null);
   const dangerZoneLayerRef = useRef<L.LayerGroup | null>(null);
+  const activityReportsLayerRef = useRef<L.LayerGroup | null>(null);
   const routingControlRef = useRef<L.Routing.Control | null>(null);
   const { toast } = useToast();
 
-  // User marker icon
-  const getUserMarkerIcon = () => {
+  const getIcon = (IconComponent: React.ElementType, colorClass: string, bgClass: string) => {
     if (typeof window === 'undefined') return null;
-
     return L.divIcon({
       html: ReactDOMServer.renderToString(
-        <div className="bg-primary rounded-full p-2 shadow-lg">
-          <PersonStanding className="h-6 w-6 text-primary-foreground" />
+        <div className={`rounded-full p-2 shadow-lg ${bgClass}`}>
+          <IconComponent className={`h-6 w-6 ${colorClass}`} />
         </div>
       ),
       className: '',
       iconSize: [40, 40],
-      iconAnchor: [20, 20],
+      iconAnchor: [20, 40],
     });
   };
 
@@ -73,6 +77,11 @@ export default function GuardianAngelMap({
     }).addTo(mapRef.current);
 
     dangerZoneLayerRef.current = L.layerGroup().addTo(mapRef.current);
+    activityReportsLayerRef.current = L.layerGroup().addTo(mapRef.current);
+
+    mapRef.current.on('click', (e) => {
+      onMapClick([e.latlng.lat, e.latlng.lng]);
+    });
 
     return () => {
       if (mapRef.current) {
@@ -80,13 +89,12 @@ export default function GuardianAngelMap({
         mapRef.current = null;
       }
     };
-  }, []);
+  }, [onMapClick]);
 
   // User marker
   useEffect(() => {
     if (!mapRef.current || !userPosition) return;
-
-    const userIcon = getUserMarkerIcon();
+    const userIcon = getIcon(PersonStanding, 'text-primary-foreground', 'bg-primary');
     if (!userIcon) return;
 
     if (!userMarkerRef.current) {
@@ -119,6 +127,28 @@ export default function GuardianAngelMap({
       }).addTo(layerGroup);
     });
   }, [dangerZones]);
+
+  // Activity reports
+  useEffect(() => {
+    const layerGroup = activityReportsLayerRef.current;
+    if (!mapRef.current || !layerGroup) return;
+
+    layerGroup.clearLayers();
+    const reportIcon = getIcon(MessageSquareWarning, 'text-amber-900', 'bg-amber-400');
+    if (!reportIcon) return;
+
+    activityReports.forEach((report) => {
+      const marker = L.marker(report.location, { icon: reportIcon }).addTo(layerGroup);
+      const reportTime = report.timestamp ? formatDistanceToNow(report.timestamp.toDate(), { addSuffix: true }) : 'just now';
+      marker.bindPopup(`
+        <div style="font-family: sans-serif; max-width: 200px;">
+          <p style="margin: 0; font-weight: bold; font-size: 1.1em; color: #333;">Suspicious Activity</p>
+          <p style="margin: 4px 0; font-size: 0.9em; color: #555;">${report.comment}</p>
+          <p style="margin: 0; font-size: 0.8em; color: #777; text-align: right;">- reported ${reportTime}</p>
+        </div>
+      `);
+    });
+  }, [activityReports]);
 
   // Routing
   useEffect(() => {

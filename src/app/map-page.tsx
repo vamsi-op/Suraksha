@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import type { DangerZone, LatLngExpression } from '@/lib/definitions';
+import type { DangerZone, LatLngExpression, ActivityReport } from '@/lib/definitions';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/firebase/auth-context';
@@ -12,6 +12,10 @@ import { Button } from '@/components/ui/button';
 import { PanelLeft, Loader2 } from 'lucide-react';
 import { getDistance, isLineSegmentIntersectingCircle } from '@/lib/utils';
 import dynamic from 'next/dynamic';
+import { AddReportDialog } from '@/components/add-report-dialog';
+import { collection, onSnapshot, query, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
+import { addActivityReport } from '@/lib/firebase/firestore';
 
 const GuardianAngelMap = dynamic(() => import('@/components/guardian-angel-map'), { 
   ssr: false,
@@ -47,8 +51,11 @@ export default function MapPage() {
   const [isTracking, setIsTracking] = useState(false);
   const [trackingSeconds, setTrackingSeconds] = useState(1800);
   const [routeCoordinates, setRouteCoordinates] = useState<LatLngExpression[]>([]);
-  const [dangerZones, setDangerZones] = useState<DangerZone[]>(INITIAL_DANGER_ZONES);
-  const [lastReportedZoneId, setLastReportedZoneId] = useState<string | null>(null);
+  const [dangerZones] = useState<DangerZone[]>(INITIAL_DANGER_ZONES);
+  const [activityReports, setActivityReports] = useState<ActivityReport[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [newReportLocation, setNewReportLocation] = useState<LatLngExpression | null>(null);
+
   const alertedZones = useRef<Set<string>>(new Set());
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -73,6 +80,34 @@ export default function MapPage() {
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
+  }, [toast]);
+  
+  // Listen for real-time updates to activity reports
+  useEffect(() => {
+    const q = query(collection(db, 'activity-reports'));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const reports: ActivityReport[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        reports.push({
+          id: doc.id,
+          location: [data.location.latitude, data.location.longitude],
+          comment: data.comment,
+          userId: data.userId,
+          timestamp: data.timestamp,
+        });
+      });
+      setActivityReports(reports);
+    }, (error) => {
+        console.error("Error fetching activity reports: ", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Could not fetch community reports.'
+        });
+    });
+
+    return () => unsubscribe();
   }, [toast]);
 
   useEffect(() => {
@@ -168,54 +203,34 @@ export default function MapPage() {
         toast({ title: 'Location Sharing Started', description: 'Your location will be shared for 30 minutes.' });
     }
   }
-
-  const handleReportActivity = () => {
-    if (!userPosition) {
-      toast({
-        variant: 'destructive',
-        title: 'Cannot Report Activity',
-        description: 'Your location is not available. Please enable location services.',
-      });
-      return;
-    }
-
-    // Cancel previous report if one exists
-    if (lastReportedZoneId) {
-        handleCancelReport();
-    }
-
-    if (!isTracking) {
-      handleToggleTracking(); // Start tracking if not already
-    }
-
-    const newZoneId = `reported-${new Date().getTime()}`;
-    const newZone: DangerZone = {
-      id: newZoneId,
-      location: userPosition,
-      radius: 500, // 500 meter radius for reported zones
-      weight: 60, // Moderate risk
-      level: 'moderate',
-    };
-
-    setDangerZones(prevZones => [...prevZones, newZone]);
-    setLastReportedZoneId(newZoneId);
-
-    toast({
-      title: 'Activity Reported',
-      description: 'Thank you for your report. The area has been marked and your location sharing is active.',
-    });
+  
+  const handleMapClick = (latlng: LatLngExpression) => {
+    setNewReportLocation(latlng);
+    setDialogOpen(true);
   };
 
-  const handleCancelReport = () => {
-    if (!lastReportedZoneId) return;
+  const handleReportSubmit = async (comment: string) => {
+    if (!newReportLocation || !user) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not submit report. Location or user not found.' });
+        return;
+    }
 
-    setDangerZones(prevZones => prevZones.filter(zone => zone.id !== lastReportedZoneId));
-    setLastReportedZoneId(null);
-    toast({
-      title: 'Report Canceled',
-      description: 'The previously marked area has been cleared.',
-    });
+    try {
+        await addActivityReport({
+            location: { latitude: newReportLocation[0], longitude: newReportLocation[1] },
+            comment,
+            userId: user.uid,
+            timestamp: Timestamp.now(),
+        });
+        toast({ title: 'Report Submitted', description: 'Thank you for helping keep the community safe.' });
+        setDialogOpen(false);
+        setNewReportLocation(null);
+    } catch (error) {
+        console.error("Error submitting report: ", error);
+        toast({ variant: 'destructive', title: 'Submission Failed', description: 'Could not save your report. Please try again.' });
+    }
   };
+
 
   const handleRouteFound = (coords: LatLngExpression[]) => {
     setRouteCoordinates(coords);
@@ -228,9 +243,6 @@ export default function MapPage() {
     trackingSeconds,
     handleToggleTracking,
     handleSetDestination,
-    handleReportActivity,
-    handleCancelReport,
-    isReportActive: !!lastReportedZoneId,
   };
 
   return (
@@ -239,7 +251,9 @@ export default function MapPage() {
         userPosition={userPosition}
         destination={destination}
         dangerZones={dangerZones}
+        activityReports={activityReports}
         onRouteFound={handleRouteFound}
+        onMapClick={handleMapClick}
       />
       {isMobile ? (
         <Sheet>
@@ -263,6 +277,11 @@ export default function MapPage() {
           <ControlPanel {...controlPanelProps} />
         </div>
       )}
+      <AddReportDialog 
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onSubmit={handleReportSubmit}
+      />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { db, auth } from './config';
-import { collection, addDoc, getDocs, query, doc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, doc, deleteDoc, GeoPoint, Timestamp } from 'firebase/firestore';
 import type { EmergencyContact } from '../definitions';
 
 // This file should only contain CLIENT-SIDE Firestore operations.
@@ -40,4 +40,17 @@ export const getClientUserContacts = async (): Promise<EmergencyContact[]> => {
 export const deleteContact = async (contactId: string) => {
     const userId = getCurrentUserId();
     await deleteDoc(doc(db, 'users', userId, 'contacts', contactId));
+};
+
+// Add a new activity report (CLIENT-SIDE)
+export const addActivityReport = async (report: {
+    location: { latitude: number; longitude: number };
+    comment: string;
+    userId: string;
+    timestamp: Timestamp;
+}) => {
+    await addDoc(collection(db, 'activity-reports'), {
+        ...report,
+        location: new GeoPoint(report.location.latitude, report.location.longitude),
+    });
 };

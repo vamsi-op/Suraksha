@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { SurakshaLogo } from './icons';
-import { Siren, Share2, XCircle, Timer, User, LogOut, MapPin, Search, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { Siren, Share2, XCircle, Timer, User, LogOut, MapPin, Search, MessageSquarePlus } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { auth } from '@/lib/firebase/config';
@@ -20,9 +20,6 @@ interface ControlPanelProps {
   trackingSeconds: number;
   handleToggleTracking: () => void;
   handleSetDestination: (address: string) => void;
-  handleReportActivity: () => void;
-  handleCancelReport: () => void;
-  isReportActive: boolean;
 }
 
 export default function ControlPanel({
@@ -31,9 +28,6 @@ export default function ControlPanel({
   trackingSeconds,
   handleToggleTracking,
   handleSetDestination,
-  handleReportActivity,
-  handleCancelReport,
-  isReportActive,
 }: ControlPanelProps) {
   const [sosLoading, setSosLoading] = useState(false);
   const [destinationAddress, setDestinationAddress] = useState('');
@@ -109,9 +103,8 @@ export default function ControlPanel({
       </CardHeader>
       <CardContent className="flex-grow overflow-y-auto space-y-6">
         
-        <div className="space-y-3">
+         <div className="space-y-3">
           <h3 className="font-semibold text-foreground flex items-center"><Siren className="mr-2 h-5 w-5 text-destructive" />Safety Tools</h3>
-          <div className="grid grid-cols-2 gap-2">
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" className="w-full justify-start text-base py-6">
@@ -133,36 +126,6 @@ export default function ControlPanel({
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            {isReportActive ? (
-                <Button 
-                    variant="outline" 
-                    onClick={handleCancelReport} 
-                    className="w-full border-green-500 text-green-500 hover:bg-green-50 hover:text-green-600 justify-start text-base py-6"
-                >
-                    <ShieldCheck className="mr-3 h-6 w-6" /> Cancel Report
-                </Button>
-            ) : (
-                <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button variant="outline" className="w-full border-amber-500 text-amber-500 hover:bg-amber-50 hover:text-amber-600 justify-start text-base py-6">
-                    <ShieldAlert className="mr-3 h-6 w-6" /> Report
-                    </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                    <AlertDialogTitle>Report Suspicious Activity?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        This will mark your current area as potentially unsafe and enable location sharing for 30 minutes. Are you sure you want to proceed?
-                    </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleReportActivity}>Confirm Report</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-                </AlertDialog>
-            )}
-          </div>
         </div>
         
         <Separator />
@@ -220,6 +183,15 @@ export default function ControlPanel({
                     </AlertDialogContent>
                 </AlertDialog>
             )}
+        </div>
+
+        <Separator />
+        
+        <div className="space-y-3">
+            <h3 className="font-semibold text-foreground flex items-center"><MessageSquarePlus className="mr-2 h-5 w-5 text-accent"/>Community Reports</h3>
+            <p className="text-sm text-muted-foreground">
+                Click anywhere on the map to report a suspicious activity. Your comment will be visible to other users to help keep the community safe.
+            </p>
         </div>
         
       </CardContent>
