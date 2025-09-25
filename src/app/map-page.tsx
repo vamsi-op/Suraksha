@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/firebase/auth-context';
 
 import ControlPanel from '@/components/control-panel';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { PanelLeft, Loader2 } from 'lucide-react';
 import { getDistance, isLineSegmentIntersectingCircle } from '@/lib/utils';
@@ -144,12 +144,9 @@ export default function MapPage() {
 
   const handleSetDestination = (address: string) => {
     // This is a placeholder for geocoding
-    // For now, let's just set a fixed destination for testing
-    // Example: Vizag RTC Complex
-    setDestination([17.7247, 83.3005]);
     toast({
-      title: 'Route Set',
-      description: 'Calculating route to destination.',
+        title: 'Feature Under Development',
+        description: 'The route search functionality is not yet implemented.',
     });
   };
 
