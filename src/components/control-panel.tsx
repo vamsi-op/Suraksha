@@ -107,27 +107,32 @@ export default function ControlPanel({
         
          <div className="space-y-3">
           <h3 className="font-semibold text-foreground flex items-center"><Siren className="mr-2 h-5 w-5 text-destructive" />Safety Tools</h3>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="w-full justify-start text-base py-6">
-                  <Siren className="mr-3 h-6 w-6" /> SOS
+            <div className="grid grid-cols-2 gap-2">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" className="w-full justify-center text-base py-6">
+                      <Siren className="mr-2 h-5 w-5" /> SOS
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Activate SOS?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This is a prototype feature. In a real app, this would send your location to emergency contacts.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={onSosConfirm} disabled={sosLoading}>
+                        {sosLoading ? 'Sending...' : 'Confirm SOS'}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                <Button onClick={handleOpenReportDialog} variant="outline" className="w-full justify-center text-base py-6">
+                    <MessageSquarePlus className="mr-2 h-5 w-5" /> Report
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Activate SOS?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This is a prototype feature. In a real app, this would send your location to emergency contacts.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={onSosConfirm} disabled={sosLoading}>
-                    {sosLoading ? 'Sending...' : 'Confirm SOS'}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            </div>
         </div>
         
         <Separator />
@@ -185,18 +190,6 @@ export default function ControlPanel({
                     </AlertDialogContent>
                 </AlertDialog>
             )}
-        </div>
-
-        <Separator />
-        
-        <div className="space-y-3">
-            <h3 className="font-semibold text-foreground flex items-center"><MessageSquarePlus className="mr-2 h-5 w-5 text-accent"/>Community Reports</h3>
-            <p className="text-sm text-muted-foreground">
-                Report suspicious activity at your current location. Your comment will be visible to other users.
-            </p>
-            <Button onClick={handleOpenReportDialog} variant="outline" className="w-full">
-                <MessageSquarePlus className="mr-2 h-4 w-4" /> Report Activity
-            </Button>
         </div>
         
       </CardContent>
